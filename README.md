@@ -15,7 +15,7 @@ python -m pip install -e .
 ```
 
 ### Instructions
-The `milkshake` folder contains the base code and is written in PyTorch 1.12 with PyTorch Lightning 1.7. Three important files are `milkshake/main.py`, which runs experiments, `milkshake/datamodules/datamodule.py`, which includes data processing and loading, and `milkshake/models/model.py`, which includes model training and inference. These files typically should not need to be modified for experimentation, unless a new basic functionality is being added.
+The `milkshake` folder contains the base code and is written in PyTorch 1.12 with PyTorch Lightning 1.7. Three important files are `milkshake/main.py`, which runs experiments, `milkshake/datamodules/datamodule.py`, which includes data processing and loading, and `milkshake/models/model.py`, which includes model training and inference. These files typically should not need to be modified for experimentation, unless a new basic functionality is being added. Currently, there are 8 datasets and 5 models implemented across both vision and language tasks.
 
 The `cfgs` folder contains configuration files in the `yaml` language which specify training and model parameters. In addition to the options in `milkshake/args.py`, all PyTorch Lightning 1.7 Trainer variables are valid config parameters. Use `python milkshake/main.py -h` to see all options and their descriptions.
 
