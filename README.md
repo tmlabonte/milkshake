@@ -51,9 +51,8 @@ and similarly for the distillation example.
 5. Currently, the only supported format for `targets`, i.e., the class labels, are digits in the range `[0, num_classes]`. If your targets are in some other format, you can add a preprocessing step in the `DataModule` to map them to this range.
 6. When implementing custom logging, you must log some attribute named "loss"; that is, you cannot rename the "loss" attribute to something else.
 
-### Citation
-If you use this code in your research, please consider using the following citation:
-
+### Citation and License
+Milkshake is distributed under the MIT License. If you use this code in your research, please consider using the following citation:
 ```
 @misc{labonte23,
   author={Tyler LaBonte},
