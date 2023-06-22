@@ -1,0 +1,12 @@
+accelerator: gpu
+batch_size: 100
+check_val_every_n_epoch: 2
+ckpt_every_n_epoch: 2
+data_augmentation: True
+datamodule: celeba
+devices: 1
+lr: 3e-3
+lr_scheduler: cosine
+max_epochs: 20
+model: resnet
+refresh_rate: 1000
