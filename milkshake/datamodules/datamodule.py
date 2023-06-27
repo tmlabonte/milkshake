@@ -248,6 +248,10 @@ class DataModule(VisionDataModule):
             indices = self.dataset_train.train_indices
             targets = self.dataset_train.targets[indices]
 
+            # Removes group dimension if necessary.
+            if targets[0].ndim > 0:
+                targets = targets[:, 0]
+
             counts = np.bincount(targets)
             label_weights = 1. / counts
             weights = label_weights[targets]
