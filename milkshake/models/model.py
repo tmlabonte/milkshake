@@ -18,6 +18,7 @@ import torchvision.models as models
 from milkshake.utils import compute_accuracy, to_np
 
 # TODO: Organize logging code in a separate file.
+# TODO: Implement after_n_steps logging similarly to after_epoch.
 
 
 class Model(pl.LightningModule):
@@ -114,8 +115,8 @@ class Model(pl.LightningModule):
             self.log(
                 name,
                 value,
-                on_step=(name == "loss"),
-                on_epoch=(name != "loss"),
+                on_step=(name in ("loss", "train_loss")),
+                on_epoch=(name not in ("loss", "train_loss")),
                 prog_bar=(name in ("train_acc", "val_loss", "val_acc")),
                 sync_dist=True,
                 add_dataloader_idx=add_dataloader_idx,

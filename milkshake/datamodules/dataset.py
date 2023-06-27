@@ -107,7 +107,10 @@ class Dataset(VisionDataset):
         # TODO: Make lazy loading option for each dataset.
         if isinstance(datum, np.ndarray):
             if datum.dtype not in (str, np.str_):
-                datum = Image.fromarray(datum)
+                try:
+                    datum = Image.fromarray(datum)
+                except:
+                    pass # e.g., BERT tokens in an np.ndarray
         elif isinstance(datum, (str, np.str_)):
             if osp.isfile(datum):
                 datum = Image.open(datum)
