@@ -16,8 +16,8 @@ class BinaryMNIST(DataModule):
     turns it into a binary classification task between odd and even digits.
     """
 
-    def __init__(self, args):
-        super().__init__(args, MNISTDataset, 2)
+    def __init__(self, args, **kwargs):
+        super().__init__(args, MNISTDataset, 2, 0, **kwargs)
 
     def augmented_transforms(self):
         return self.default_transforms()

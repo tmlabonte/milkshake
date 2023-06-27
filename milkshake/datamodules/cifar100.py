@@ -13,7 +13,6 @@ from torchvision.transforms import Compose, RandomCrop, RandomHorizontalFlip, To
 # Imports milkshake packages.
 from milkshake.datamodules.dataset import Dataset
 from milkshake.datamodules.datamodule import DataModule
-from milkshake.datamodules.disagreement import Disagreement
 
 
 class CIFAR100Dataset(Dataset, TorchvisionCIFAR100):
@@ -54,7 +53,7 @@ class CIFAR100(DataModule):
     """DataModule for the CIFAR-100 dataset."""
 
     def __init__(self, args, **kwargs):
-        super().__init__(args, CIFAR100Dataset, 100, **kwargs)
+        super().__init__(args, CIFAR100Dataset, 100, 0, **kwargs)
 
     def augmented_transforms(self):
         transforms = Compose([

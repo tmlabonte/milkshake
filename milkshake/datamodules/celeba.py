@@ -27,7 +27,6 @@ from torchvision.transforms import (
 # Imports milkshake packages.
 from milkshake.datamodules.dataset import Dataset
 from milkshake.datamodules.datamodule import DataModule
-from milkshake.datamodules.disagreement import Disagreement
 
 
 class CelebADataset(Dataset):
@@ -49,8 +48,8 @@ class CelebADataset(Dataset):
             extract_archive(osp.join(celeba_dir, "celeba.zip"))
 
             url = (
-                "https://github.com/PolinaKirichenko/deep_feature"
-                "_reweighting/blob/main/celeba_metadata.csv"
+                "https://raw.githubusercontent.com/PolinaKirichenko/"
+                "deep_feature_reweighting/main/celeba_metadata.csv"
             )
             wget.download(url, out=celeba_dir)
 
@@ -68,7 +67,6 @@ class CelebADataset(Dataset):
         men = np.argwhere(gender == 1).flatten()
 
         self.groups = [
-            np.arange(len(self.targets)),
             np.intersect1d(nonblond, women),
             np.intersect1d(nonblond, men),
             np.intersect1d(blond, women),
@@ -79,12 +77,19 @@ class CelebADataset(Dataset):
         self.train_indices = np.argwhere(split == 0).flatten()
         self.val_indices = np.argwhere(split == 1).flatten()
         self.test_indices = np.argwhere(split == 2).flatten()
+
+        # Adds group indices into targets for metrics.
+        targets = []
+        for j, t in enumerate(self.targets):
+            g = [k for k, group in enumerate(self.groups) if j in group][0]
+            targets.append([t, g])
+        self.targets = np.asarray(targets)
     
 class CelebA(DataModule):
     """DataModule for the CelebA dataset."""
 
     def __init__(self, args, **kwargs):
-        super().__init__(args, CelebADataset, 2, **kwargs)
+        super().__init__(args, CelebADataset, 2, 4, **kwargs)
 
     def augmented_transforms(self):
         transform = Compose([
@@ -105,10 +110,4 @@ class CelebA(DataModule):
         ])
 
         return transform
-
-class CelebADisagreement(CelebA, Disagreement):
-    """DataModule for the CelebADisagreement dataset."""
-
-    def __init__(self, args, **kwargs):
-        super().__init__(args, **kwargs)
 

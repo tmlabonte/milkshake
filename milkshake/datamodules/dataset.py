@@ -9,6 +9,7 @@ import os.path as osp
 from PIL import Image
 
 # Imports PyTorch packages.
+import torch
 from torchvision.datasets.vision import VisionDataset
 
 

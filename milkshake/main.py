@@ -137,6 +137,7 @@ def main(
 
     datamodule = datamodule_class(args)
     args.num_classes = datamodule.num_classes
+    args.num_groups = datamodule.num_groups
 
     model = load_model(args, model_class)
 

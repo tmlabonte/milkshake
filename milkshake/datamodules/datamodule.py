@@ -31,24 +31,29 @@ class DataModule(VisionDataModule):
     Attributes:
         dataset_class: A milkshake.datamodules.datasets.Dataset class.
         num_classes: The number of classes.
+        num_groups: The number of groups.
         balanced_sampler: Whether to use a class-balanced random sampler during training.
         data_augmentation: Whether to use data augmentation during training.
         label_noise: Whether to add label noise during training.
         dataset_train: A milkshake.datamodules.dataset.Subset for training
         dataset_val: A milkshake.datamodules.dataset.Subset for validation.
         dataset_test: A milkshake.datamodules.dataset.Subset for testing.
-        train_transforms: Preprocessing for the train set.
-        val_transforms: Preprocessing for the validation set.
-        test_transforms: Preprocessing for the test set.
+        train_transforms: Preprocessing for the train set data.
+        val_transforms: Preprocessing for the validation set data.
+        test_transforms: Preprocessing for the test set data.
+        train_transforms: Preprocessing for the train set targets.
+        val_target_transforms: Preprocessing for the validation set targets.
+        test_target_transforms: Preprocessing for the test set targets.
     """
 
-    def __init__(self, args, dataset_class, num_classes):
+    def __init__(self, args, dataset_class, num_classes, num_groups):
         """Initializes a DataModule and sets transforms.
 
         Args:
             args: The configuration dictionary.
             dataset_class: A milkshake.datamodules.datasets.Dataset class.
             num_classes: The number of classes.
+            num_groups: The number of groups.
         """
 
         super().__init__(
@@ -65,6 +70,7 @@ class DataModule(VisionDataModule):
 
         self.dataset_class = dataset_class
         self.num_classes = num_classes
+        self.num_groups = num_groups
         
         self.balanced_sampler = args.balanced_sampler
         self.data_augmentation = args.data_augmentation
@@ -73,6 +79,10 @@ class DataModule(VisionDataModule):
         self.train_transforms = self.default_transforms()
         self.val_transforms = self.default_transforms()
         self.test_transforms = self.default_transforms()
+
+        self.train_target_transforms = None
+        self.val_target_transforms = None
+        self.test_target_transforms = None
 
         if self.data_augmentation:
             self.train_transforms = self.augmented_transforms()
@@ -170,6 +180,7 @@ class DataModule(VisionDataModule):
                 self.data_dir,
                 train=False,
                 transform=self.test_transforms,
+                target_transform=self.test_target_transforms,
             )
 
             dataset_test = self.test_preprocess(dataset_test)
@@ -179,12 +190,14 @@ class DataModule(VisionDataModule):
                 self.data_dir,
                 train=True,
                 transform=self.train_transforms,
+                target_transform=self.train_target_transforms,
             )
 
             dataset_val = self.dataset_class(
                 self.data_dir,
                 train=True,
                 transform=self.val_transforms,
+                target_transform=self.val_target_transforms,
             )
 
             
@@ -247,23 +260,11 @@ class DataModule(VisionDataModule):
     def val_dataloader(self):
         """Returns DataLoader(s) for the val dataset."""
 
-        # Returns a list of DataLoaders for each group.
-        if self.dataset_val.groups is not None and len(self.dataset_val.groups):
-            dataloaders = []
-            for group in self.dataset_val.groups:
-                dataloaders.append(self._data_loader(Subset(self.dataset_val, group)))
-            return dataloaders
         return self._data_loader(self.dataset_val)
 
     def test_dataloader(self):
         """Returns DataLoader(s) for the test dataset."""
 
-        # Returns a list of DataLoaders for each group.
-        if self.dataset_test.groups is not None and len(self.dataset_test.groups):
-            dataloaders = []
-            for group in self.dataset_test.groups:
-                dataloaders.append(self._data_loader(Subset(self.dataset_test, group)))
-            return dataloaders
         return self._data_loader(self.dataset_test)
 
     def _data_loader(self, dataset, shuffle=False, sampler=None):

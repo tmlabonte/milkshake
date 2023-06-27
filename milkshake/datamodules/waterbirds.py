@@ -25,7 +25,6 @@ from torchvision.transforms import (
 # Imports milkshake packages.
 from milkshake.datamodules.dataset import Dataset
 from milkshake.datamodules.datamodule import DataModule
-from milkshake.datamodules.disagreement import Disagreement
 
 
 class WaterbirdsDataset(Dataset):
@@ -62,7 +61,6 @@ class WaterbirdsDataset(Dataset):
         water = np.argwhere(background == 1).flatten()
 
         self.groups = [
-            np.arange(len(self.targets)),
             np.intersect1d(landbirds, land),
             np.intersect1d(landbirds, water),
             np.intersect1d(waterbirds, land),
@@ -74,11 +72,18 @@ class WaterbirdsDataset(Dataset):
         self.val_indices = np.argwhere(split == 1).flatten()
         self.test_indices = np.argwhere(split == 2).flatten()
 
+        # Adds group indices into targets for metrics.
+        targets = []
+        for j, t in enumerate(self.targets):
+            g = [k for k, group in enumerate(self.groups) if j in group][0]
+            targets.append([t, g])
+        self.targets = np.asarray(targets)
+
 class Waterbirds(DataModule):
     """DataModule for the Waterbirds dataset."""
 
     def __init__(self, args, **kwargs):
-        super().__init__(args, WaterbirdsDataset, 2, **kwargs)
+        super().__init__(args, WaterbirdsDataset, 2, 4, **kwargs)
 
     def augmented_transforms(self):
         transform = Compose([
@@ -99,3 +104,4 @@ class Waterbirds(DataModule):
         ])
 
         return transform
+

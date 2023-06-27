@@ -27,7 +27,7 @@ class MNIST(DataModule):
     """DataModule for the MNIST dataset."""
 
     def __init__(self, args, **kwargs):
-        super().__init__(args, MNISTDataset, 10, **kwargs)
+        super().__init__(args, MNISTDataset, 10, 0, **kwargs)
 
     def augmented_transforms(self):
         return self.default_transforms()

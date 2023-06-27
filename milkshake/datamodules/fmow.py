@@ -21,7 +21,6 @@ from torchvision.transforms import (
 # Imports milkshake packages.
 from milkshake.datamodules.dataset import Dataset
 from milkshake.datamodules.datamodule import DataModule
-from milkshake.datamodules.disagreement import Disagreement
 from milkshake.utils import to_np
 
 
@@ -52,7 +51,6 @@ class FMOWDataset(Dataset):
 
         # Spurious 5 represents "other" locations (unused).
         self.groups = [
-            np.arange(len(self.targets)),
             np.argwhere(spurious == 0).squeeze(),
             np.argwhere(spurious == 1).squeeze(),
             np.argwhere(spurious == 2).squeeze(),
@@ -66,11 +64,18 @@ class FMOWDataset(Dataset):
         self.val_indices = np.argwhere(split == 3).flatten()
         self.test_indices = np.argwhere(split == 4).flatten()
 
+        # Adds group indices into targets for metrics.
+        targets = []
+        for j, t in enumerate(self.targets):
+            g = [k for k, group in enumerate(self.groups) if j in group][0]
+            targets.append([t, g])
+        self.targets = np.asarray(targets)
+
 class FMOW(DataModule):
     """DataModule for the FMOW dataset."""
 
     def __init__(self, args, **kwargs):
-        super().__init__(args, FMOWDataset, 62, **kwargs)
+        super().__init__(args, FMOWDataset, 62, 5, **kwargs)
 
     def augmented_transforms(self):
         transform = Compose([

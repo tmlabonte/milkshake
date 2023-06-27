@@ -8,5 +8,6 @@ devices: 1
 lr: 3e-3
 lr_scheduler: cosine
 max_epochs: 100
+metrics: ["loss", "acc", "acc_by_group"]
 model: resnet
 resnet_version: 50

@@ -17,6 +17,8 @@ import torchvision.models as models
 # Imports milkshake packages.
 from milkshake.utils import compute_accuracy, to_np
 
+# TODO: Organize logging code in a separate file.
+
 
 class Model(pl.LightningModule):
     """Parent class and training logic for a classification model.
@@ -99,45 +101,42 @@ class Model(pl.LightningModule):
 
         return [optimizer], [scheduler]
     
-    def log_helper(self, names, values, add_dataloader_idx=False, on_step=False, prog_bar=False):
+    def log_helper(self, names, values, add_dataloader_idx=False):
         """Compresses calls to self.log.
 
         Args:
-            name: A list of metric names to log.
-            value: A list of metric values to log.
+            names: A list of metric names to log.
+            values: A list of metric values to log.
             add_dataloader_idx: Whether to include the dataloader index in the name.
-            on_step: Whether to log the attribute every step (otherwise logs every epoch).
-            prog_bar: Whether to include the first two attributes in the progress bar.
         """
 
         for idx, (name, value) in enumerate(zip(names, values)):
             self.log(
                 name,
                 value,
-                on_step=on_step,
-                on_epoch=(not on_step),
-                prog_bar=(idx<=1 and prog_bar and name != "train_loss"),
+                on_step=(name == "loss"),
+                on_epoch=(name != "loss"),
+                prog_bar=(name in ("train_acc", "val_loss", "val_acc")),
                 sync_dist=True,
                 add_dataloader_idx=add_dataloader_idx,
             )
     
-    def log_helper2(self, names, values, dataloader_idx, on_step=False, prog_bar=False):
+    def log_helper2(self, names, values, dataloader_idx, epoch_wise=False):
         """Calls log_helper as necessary for each DataLoader.
         
         Args:
-           name: A list of metric names to log.
-           value: A list of metric values to log.
-           on_step: Whether to log the attribute every step (otherwise logs every epoch).
-           prog_bar: Whether to include the first two attributes in the progress bar.
+           names: A list of metric names to log.
+           values: A list of metric values to log.
+           dataloader_idx: The index of the current DataLoader.
         """
-        
+
         if dataloader_idx == 0:
-            self.log_helper(names, values, on_step=on_step, prog_bar=prog_bar)
+            self.log_helper(names, values)
 
         try:
             # Errors if there is only 1 dataloader -- this means we
             # already logged it, so just pass.
-            self.log_helper(names, values, add_dataloader_idx=True, on_step=on_step)
+            self.log_helper(names, values, add_dataloader_idx=True)
         except:
             pass
 
@@ -154,68 +153,65 @@ class Model(pl.LightningModule):
         values = []
         for name in self.hparams.metrics:
             if name in result:
-                if "by_class" in name:
-                    # Only logs class metrics during training; otherwise need to manually
-                    # collate at the end of the epoch (see collate_and_log_class_metrics).
-                    if stage != "train":
-                        continue
-                        
-                    # Class metrics are lists; splits apart the list and logs individually.
-                    names.extend([f"{stage}_{name.replace('by_', '')}{j}"
-                                  for j in range(self.hparams.num_classes)])
-                    values.extend(list(result[name]))
-                else:
+                # Class and group metrics must be manually collated.
+                if "by_class" not in name and "by_group" not in name:
                     names.append(f"{stage}_{name}")
                     values.append(result[name])
+
+        names.extend(["epoch", "step"])
+        values.extend([float(self.current_epoch), float(self.trainer.global_step)])
         
-        on_step = stage == "train"
-        prog_bar = stage != "test"
-        self.log_helper2(names, values, dataloader_idx, on_step=on_step, prog_bar=prog_bar)
+        self.log_helper2(names, values, dataloader_idx)
     
-    def collate_and_log_class_metrics(self, step_results, stage):
-        """Collates and logs metrics by class.
+    def collate_metrics(self, step_results, stage):
+        """Collates and logs metrics by class and group.
         
         This is necessary because the logger does not utilize the info of how many samples
-        from each class are in each batch, so logging class metrics on_epoch as usual
-        will weight each batch the same instead of adjusting for totals.
+        from each class/group are in each batch, so logging class/group metrics on_epoch as
+        usual will weight each batch the same instead of adjusting for totals.
         
-        Currently only supports acc_by_class and acc5_by_class.
-
         Args:
             step_results: List of dictionary results of self.validation_step or self.test_step.
             stage: "val" or "test".
         """
         
         def collate_and_sum(name):
-            try:
-                stacked = torch.stack([result[name] for result in step_results])
-            except:
-                stacked = torch.stack([result[0][name] for result in step_results])
-            return torch.sum(stacked, 1)
+            stacked = torch.stack([result[name] for result in step_results])
+            return torch.sum(stacked, 0)
+
+        dataloader_idx = step_results[0]["dataloader_idx"]
 
         if "acc_by_class" in self.hparams.metrics or \
-          "acc5_by_class" in self.hparams.metrics:
+          "acc5_by_class" in self.hparams.metrics or \
+          "acc_by_group" in self.hparams.metrics or \
+          "acc5_by_group" in self.hparams.metrics:
             names = []
             values = []
             total_by_class = collate_and_sum("total_by_class")
+            total_by_group = collate_and_sum("total_by_group")
 
             if "acc_by_class" in self.hparams.metrics:
                 acc_by_class = collate_and_sum("correct_by_class") / total_by_class
                 names.extend([f"{stage}_acc_class{j}"
-                              for j in range(self.hparams.num_classes)])
+                              for j in range(len(acc_by_class))])
                 values.extend(list(acc_by_class))
             if "acc5_by_class" in self.hparams.metrics:
                 acc5_by_class = collate_and_sum("correct5_by_class") / total_by_class
                 names.extend([f"{stage}_acc5_class{j}"
-                              for j in range(self.hparams.num_classes)])
+                              for j in range(len(acc5_by_class))])
                 values.extend(list(acc5_by_class))
+            if "acc_by_group" in self.hparams.metrics:
+                acc_by_group = collate_and_sum("correct_by_group") / total_by_group
+                names.extend([f"{stage}_acc_group{j}"
+                              for j in range(len(acc_by_group))])
+                values.extend(list(acc_by_group))
+            if "acc5_by_group" in self.hparams.metrics:
+                acc5_by_group = collate_and_sum("correct5_by_group") / total_by_group
+                names.extend([f"{stage}_acc5_group{j}"
+                              for j in range(len(acc5_by_group))])
+                values.extend(list(acc5_by_group))
 
-            try:
-                dataloader_idx = step_results[0]["dataloader_idx"]
-            except:
-                dataloader_idx = step_results[0][0]["dataloader_idx"]
-            
-            self.log_helper2(names, values, dataloader_idx)
+            self.log_helper2(names, values, dataloader_idx, epoch_wise=True)
         
     def add_metrics_to_result(self, result, accs, dataloader_idx):
         """Adds dataloader_idx and metrics from compute_accuracy to result dict.
@@ -229,11 +225,13 @@ class Model(pl.LightningModule):
         result["dataloader_idx"] = dataloader_idx
         result["acc"] = accs["acc"]
         result["acc5"] = accs["acc5"]
-        result["acc_by_class"] = accs["acc_by_class"]
-        result["acc5_by_class"] = accs["acc5_by_class"]
-        result["correct_by_class"] = accs["correct_by_class"]
-        result["correct5_by_class"] = accs["correct5_by_class"]
-        result["total_by_class"] = accs["total_by_class"]
+
+        for k in ["class", "group"]:
+            result[f"acc_by_{k}"] = accs[f"acc_by_{k}"]
+            result[f"acc5_by_{k}"] = accs[f"acc5_by_{k}"]
+            result[f"correct_by_{k}"] = accs[f"correct_by_{k}"]
+            result[f"correct5_by_{k}"] = accs[f"correct5_by_{k}"]
+            result[f"total_by_{k}"] = accs[f"total_by_{k}"]
     
     def step(self, batch, idx):
         """Performs a single step of prediction and loss calculation.
@@ -250,7 +248,13 @@ class Model(pl.LightningModule):
             is specified for a multiclass classification task.
         """
 
-        inputs, targets = batch
+        inputs, orig_targets = batch
+
+        # Removes extra targets (e.g., group index used for metrics).
+        if orig_targets[0].ndim > 0:
+            targets = orig_targets[:, 0]
+        else:
+            targets = orig_targets
 
         logits = self(inputs)
 
@@ -281,7 +285,7 @@ class Model(pl.LightningModule):
             else:
                 raise ValueError("MSE is only an option for binary classification.")
 
-        return {"loss": loss, "probs": probs, "targets": targets}
+        return {"loss": loss, "probs": probs, "targets": orig_targets}
     
     def step_and_log_metrics(self, batch, idx, dataloader_idx, stage):
         """Performs a step, then computes and logs metrics.
@@ -302,6 +306,7 @@ class Model(pl.LightningModule):
             result["probs"],
             result["targets"],
             self.hparams.num_classes,
+            self.hparams.num_groups,
         )
         
         self.add_metrics_to_result(result, accs, dataloader_idx)
@@ -323,6 +328,16 @@ class Model(pl.LightningModule):
         """
         
         return self.step_and_log_metrics(batch, idx, dataloader_idx, "train")
+
+    def training_epoch_end(self, training_step_outputs):
+        """Collates metrics upon completion of the training epoch.
+        
+        Args:
+            training_step_outputs: List of dictionary outputs of self.training_step.
+        """
+        
+        self.collate_metrics(training_step_outputs, "train")
+
     
     def validation_step(self, batch, idx, dataloader_idx=0):
         """Performs a single validation step.
@@ -345,7 +360,7 @@ class Model(pl.LightningModule):
             validation_step_outputs: List of dictionary outputs of self.validation_step.
         """
         
-        self.collate_and_log_class_metrics(validation_step_outputs, "val")
+        self.collate_metrics(validation_step_outputs, "val")
 
     def test_step(self, batch, idx, dataloader_idx=0):
         """Performs a single test step.
@@ -368,7 +383,7 @@ class Model(pl.LightningModule):
             test_step_outputs: List of dictionary outputs of self.test_step.
         """
         
-        self.collate_and_log_class_metrics(test_step_outputs, "test")
+        self.collate_metrics(test_step_outputs, "test")
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
         """Performs a single prediction step.

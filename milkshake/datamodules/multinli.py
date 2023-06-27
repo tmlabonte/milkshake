@@ -19,7 +19,6 @@ from torchvision.datasets.utils import (
 # Imports milkshake packages.
 from milkshake.datamodules.dataset import Dataset
 from milkshake.datamodules.datamodule import DataModule
-from milkshake.datamodules.disagreement import Disagreement
 
 
 class MultiNLIDataset(Dataset):
@@ -91,7 +90,6 @@ class MultiNLIDataset(Dataset):
         neutral = np.argwhere(self.targets == 2).flatten()
 
         self.groups = [
-            np.arange(len(self.targets)),
             np.intersect1d(contradiction, no_negation),
             np.intersect1d(contradiction, negation),
             np.intersect1d(entailment, no_negation),
@@ -105,11 +103,18 @@ class MultiNLIDataset(Dataset):
         self.val_indices = np.argwhere(split == 1).flatten()
         self.test_indices = np.argwhere(split == 2).flatten()
 
+        # Adds group indices into targets for metrics.
+        targets = []
+        for j, t in enumerate(self.targets):
+            g = [k for k, group in enumerate(self.groups) if j in group][0]
+            targets.append([t, g])
+        self.targets = np.asarray(targets)
+
 class MultiNLI(DataModule):
     """DataModule for the MultiNLI dataset."""
 
     def __init__(self, args, **kwargs):
-        super().__init__(args, MultiNLIDataset, 3, **kwargs)
+        super().__init__(args, MultiNLIDataset, 3, 6, **kwargs)
 
     def augmented_transforms(self):
         return None

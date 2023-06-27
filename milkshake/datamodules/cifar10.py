@@ -13,7 +13,6 @@ from torchvision.transforms import Compose, RandomCrop, RandomHorizontalFlip, To
 # Imports milkshake packages.
 from milkshake.datamodules.dataset import Dataset
 from milkshake.datamodules.datamodule import DataModule
-from milkshake.datamodules.disagreement import Disagreement
 
 
 class CIFAR10Dataset(Dataset, TorchvisionCIFAR10):

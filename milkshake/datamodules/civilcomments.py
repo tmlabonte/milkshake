@@ -13,7 +13,6 @@ import torch
 # Imports milkshake packages.
 from milkshake.datamodules.dataset import Dataset
 from milkshake.datamodules.datamodule import DataModule
-from milkshake.datamodules.disagreement import Disagreement
 from milkshake.utils import to_np
 
 
@@ -74,7 +73,6 @@ class CivilCommentsDataset(Dataset):
         self.targets = torch.load(targets_file).numpy()
 
         self.groups = [
-            np.arange(len(self.targets)),
             np.intersect1d((~self.targets+2).nonzero()[0], (~spurious+2).nonzero()[0]),
             np.intersect1d((~self.targets+2).nonzero()[0], spurious.nonzero()[0]),
             np.intersect1d(self.targets.nonzero()[0], (~spurious+2).nonzero()[0]),
@@ -86,11 +84,18 @@ class CivilCommentsDataset(Dataset):
         self.val_indices = np.argwhere(split == 1).flatten()
         self.test_indices = np.argwhere(split == 2).flatten()
 
+        # Adds group indices into targets for metrics.
+        targets = []
+        for j, t in enumerate(self.targets):
+            g = [k for k, group in enumerate(self.groups) if j in group][0]
+            targets.append([t, g])
+        self.targets = np.asarray(targets)
+
 class CivilComments(DataModule):
     """DataModule for the CivilComments dataset."""
 
     def __init__(self, args, **kwargs):
-        super().__init__(args, CivilCommentsDataset, 2, **kwargs)
+        super().__init__(args, CivilCommentsDataset, 2, 4, **kwargs)
 
     def augmented_transforms(self):
         return None

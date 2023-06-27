@@ -42,22 +42,33 @@ def get_weights(version, best=None, idx=None):
         list_of_weights = sorted([w for w in list_of_weights if "best" not in w])
         return list_of_weights[idx]
 
-def compute_accuracy(probs, targets, num_classes):
+def compute_accuracy(probs, targets, num_classes, num_groups):
     """Computes top-1 and top-5 accuracies.
     
     Computes top-1 and top-5 accuracies by total and by class, and also
     includes the number of correct predictions and number of samples.
     The latter is useful for, e.g., collating metrics over an epoch.
+    If groups are provided (as a second column in targets), then
+    also returns group accuracies.
 
     Args:
         probs: A torch.Tensor of prediction probabilities.
         targets: A torch.Tensor of classification targets.
         num_classes: The total number of classes.
+        num_groups: The total number of groups.
 
     Returns:
         A dictionary of metrics including top-1 and top-5 accuracies, number of
-        correct predictions, and number of samples, each by total and by class.
+        correct predictions, and number of samples, each by total, class, and group.
     """
+
+    # TODO: Clean up group metrics.
+
+    # Splits apart targets and groups if necessary.
+    groups = None
+    if num_groups:
+        groups = targets[:, 1]
+        targets = targets[:, 0]
 
     if num_classes == 1:
         preds1 = (probs >= 0.5).int()
@@ -75,10 +86,22 @@ def compute_accuracy(probs, targets, num_classes):
         correct1_by_class.append(correct_nums.sum())
         total_by_class.append((targets == j).sum())
 
-    correct5 = torch.tensor([1.] * len(targets))
-    acc5_by_class = [torch.tensor(1.)] * num_classes
+    acc1_by_group = [torch.tensor(1., device=targets.device)]
+    correct1_by_group = [torch.tensor(1., device=targets.device)]
+    total_by_group = [torch.tensor(1., device=targets.device)]
+    if num_groups:
+        acc1_by_group = []
+        correct1_by_group = []
+        total_by_group = []
+        for j in range(num_groups):
+            correct_nums = correct1[groups == j]
+            acc1_by_group.append(correct_nums.mean())
+            correct1_by_group.append(correct_nums.sum())
+            total_by_group.append((groups == j).sum())
+
+    correct5 = torch.tensor([1.] * len(targets), device=targets.device)
+    acc5_by_class = [torch.tensor(1., device=targets.device)] * num_classes
     correct5_by_class = total_by_class
-    
     if num_classes > 5:
         _, preds5 = torch.topk(probs, k=5, dim=1)
         correct5 = torch.tensor([t in preds5[j] for j, t in enumerate(targets)])
@@ -91,17 +114,35 @@ def compute_accuracy(probs, targets, num_classes):
             acc5_by_class.append(correct_nums.mean())
             correct5_by_class.append(correct_nums.sum())
 
+    acc5_by_group = [torch.tensor(1., device=targets.device)]
+    correct5_by_group = [torch.tensor(1., device=targets.device)]
+    if num_groups:
+        acc5_by_group = [torch.tensor(1., device=targets.device)] * num_groups
+        correct5_by_group = total_by_group
+        if num_classes > 5:
+            acc5_by_group = []
+            correct5_by_group = []
+            for j in range(num_groups):
+                correct_nums = correct5[groups == j]
+                acc5_by_group.append(correct_nums.mean())
+                correct5_by_group.append(correct_nums.sum())
+
     accs = {
         "acc": correct1.mean(),
         "acc5": correct5.mean(),
         "acc_by_class": torch.stack(acc1_by_class),
         "acc5_by_class": torch.stack(acc5_by_class),
+        "acc_by_group": torch.stack(acc1_by_group),
+        "acc5_by_group": torch.stack(acc5_by_group),
         "correct": correct1.sum(),
         "correct5": correct5.sum(),
         "correct_by_class": torch.stack(correct1_by_class),
         "correct5_by_class": torch.stack(correct5_by_class),
+        "correct_by_group": torch.stack(correct1_by_group),
+        "correct5_by_group": torch.stack(correct5_by_group),
         "total": len(targets),
         "total_by_class": torch.stack(total_by_class),
+        "total_by_group": torch.stack(total_by_group),
     }
     
     return accs
