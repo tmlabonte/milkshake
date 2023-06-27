@@ -187,7 +187,10 @@ class Model(pl.LightningModule):
         """
         
         def collate_and_sum(name):
-            stacked = torch.stack([result[name] for result in step_results])
+            try:
+                stacked = torch.stack([result[name] for result in step_results])
+            except:
+                stacked = torch.stack([result[0][name] for result in step_results])
             return torch.sum(stacked, 1)
 
         if "acc_by_class" in self.hparams.metrics or \
@@ -207,7 +210,11 @@ class Model(pl.LightningModule):
                               for j in range(self.hparams.num_classes)])
                 values.extend(list(acc5_by_class))
 
-            dataloader_idx = step_results[0]["dataloader_idx"]
+            try:
+                dataloader_idx = step_results[0]["dataloader_idx"]
+            except:
+                dataloader_idx = step_results[0][0]["dataloader_idx"]
+            
             self.log_helper2(names, values, dataloader_idx)
         
     def add_metrics_to_result(self, result, accs, dataloader_idx):
