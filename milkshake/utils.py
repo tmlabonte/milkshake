@@ -76,7 +76,7 @@ def compute_accuracy(probs, targets, num_classes):
         total_by_class.append((targets == j).sum())
 
     correct5 = torch.tensor([1.] * len(targets))
-    acc5_by_class = [1.] * num_classes
+    acc5_by_class = [torch.tensor(1.)] * num_classes
     correct5_by_class = total_by_class
     
     if num_classes > 5:
