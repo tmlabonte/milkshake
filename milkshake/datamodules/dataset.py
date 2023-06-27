@@ -5,6 +5,7 @@ from abc import abstractmethod
 
 # Imports Python packages.
 import numpy as np
+import os.path as osp
 from PIL import Image
 
 # Imports PyTorch packages.
@@ -102,17 +103,17 @@ class Dataset(VisionDataset):
         # Loads a PIL.Image (for vision) or a string (for NLP) from the cached
         # np.ndarray data or from disk. If a string is passed, tries to check if
         # it is a filepath; if so loads an image, otherwise returns the string.
-        # Passes if, e.g., datum is already a torch.Tensor.
         # TODO: Make lazy loading option for each dataset.
-        try:
-            if isinstance(datum, np.ndarray):
-                if datum.dtype != str:
-                    datum = Image.fromarray(datum)
-            elif isinstance(datum, str):
-                if osp.isfile(datum):
-                    datum = Image.open(datum)
-        except:
+        if isinstance(datum, np.ndarray):
+            if datum.dtype not in (str, np.str_):
+                datum = Image.fromarray(datum)
+        elif isinstance(datum, (str, np.str_)):
+            if osp.isfile(datum):
+                datum = Image.open(datum)
+        elif isinstance(datum, torch.Tensor):
             pass
+        else:
+            raise ValueError("Unrecognized data type.")
 
         if self.transform is not None:
             datum = self.transform(datum)
