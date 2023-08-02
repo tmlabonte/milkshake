@@ -86,7 +86,7 @@ def add_input_args(parser):
                help="The number of epochs to warm up using certain schedulers.")
     parser.add("--metrics", nargs="+", default=["loss", "acc", "acc_by_class"],
                help=("Which metrics to compute and log. Choices include loss, acc, acc5, acc_by_class"
-                     ", acc5_by_class, and any custom metrics implemented in a DataModule."))
+                     "acc5_by_class, and any custom metrics implemented in a DataModule."))
     parser.add("--model", choices=model_names,
                help="The name of the Model to utilize.")
     parser.add("--momentum", default=0.9, type=float,
