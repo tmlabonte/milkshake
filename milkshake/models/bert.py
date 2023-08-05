@@ -97,7 +97,7 @@ class BERT(Model):
             )
 
             return [optimizer], [scheduler]
-        elif self.hparams.lr_scheduler == "step" and self.hparams.lr_step == []:
+        elif self.hparams.lr_scheduler == "step" and self.hparams.lr_steps == []:
             return optimizer
         else:
             raise NotImplementedError()
