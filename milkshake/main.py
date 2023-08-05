@@ -104,7 +104,7 @@ def load_trainer(args, addtl_callbacks=None):
     trainer = Trainer.from_argparse_args(
         args,
         callbacks=callbacks,
-        logger=WandbLogger(save_dir=args.wandb_dir, log_models="all"),
+        logger=WandbLogger(save_dir=args.wandb_dir, log_model="all"),
     )
 
     return trainer
