@@ -99,10 +99,12 @@ def load_trainer(args, addtl_callbacks=None):
         if not isinstance(addtl_callbacks, list):
             raise ValueError("addtl_callbacks should be None or a list.")
         callbacks.extend(addtl_callbacks)
+
+    os.makedirs(args.wandb_dir, exist_ok=True)
     trainer = Trainer.from_argparse_args(
         args,
         callbacks=callbacks,
-        logger=WandbLogger(),
+        logger=WandbLogger(save_dir=args.wandb_dir),
     )
 
     return trainer
