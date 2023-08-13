@@ -17,7 +17,7 @@ python -m pip install -e .
 ### Instructions
 The `milkshake` folder contains the base code and is written in PyTorch 1.12 with PyTorch Lightning 1.7. Three important files are `milkshake/main.py`, which runs experiments, `milkshake/datamodules/datamodule.py`, which includes data processing and loading, and `milkshake/models/model.py`, which includes model training and inference. These files typically should not need to be modified for experimentation, unless a new basic functionality is being added.
 
-The `cfgs` folder contains configuration files in the `yaml` language which specify training and model parameters. In addition to the options in `milkshake/args.py`, all PyTorch Lightning 1.7 Trainer variables are valid config parameters. Use `python milkshake/main.py -h` to see all options and their descriptions.
+The `cfgs` folder contains configuration files in the `yaml` language which specify training and model parameters. In addition to the options in `milkshake/args.py`, all [PyTorch Lightning 1.7 Trainer flags](https://pytorch-lightning.readthedocs.io/en/1.7.7/common/trainer.html#trainer-flags) are valid config parameters. Use `python milkshake/main.py -h` to see all options and their descriptions.
 
 The `exps` folder contains experiment code and is where most new code should go. Each experiment in `exps` should call the `main` method from `milkshake/main.py` to train the model, and the standard workflow is to subclass Models or DataModules as required. This codebase includes two examples: `adversarial.py` implements adversarial training, while `distillation.py` implements model distillation.
 
