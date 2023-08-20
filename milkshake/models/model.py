@@ -123,7 +123,7 @@ class Model(pl.LightningModule):
                 add_dataloader_idx=add_dataloader_idx,
             )
     
-    def log_helper2(self, names, values, dataloader_idx, epoch_wise=False):
+    def log_helper2(self, names, values, dataloader_idx):
         """Calls log_helper as necessary for each DataLoader.
         
         Args:
@@ -213,7 +213,7 @@ class Model(pl.LightningModule):
                               for j in range(len(acc5_by_group))])
                 values.extend(list(acc5_by_group))
 
-            self.log_helper2(names, values, dataloader_idx, epoch_wise=True)
+            self.log_helper2(names, values, dataloader_idx)
         
     def add_metrics_to_result(self, result, accs, dataloader_idx):
         """Adds dataloader_idx and metrics from compute_accuracy to result dict.
