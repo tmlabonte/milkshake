@@ -74,8 +74,10 @@ def pct(x):
     return round(x, 2) * 100
 
 def experiment(args):
+    cifar10 = CIFAR10(args)
+
     # Trains a teacher ResNet.
-    model, _, resnet_metrics  = main(args, ResNet, CIFAR10)
+    model, _, resnet_metrics  = main(args, ResNet, cifar10)
 
     teacher_version = model.trainer.logger.version
     args.teacher_weights = get_weights(teacher_version, idx=-1)
@@ -87,13 +89,13 @@ def experiment(args):
     args.ckpt_every_n_epoch = args.cnn_epochs
 
     # Trains a CNN baseline.
-    _, _, cnn_metrics = main(args, CNN, CIFAR10)
+    _, _, cnn_metrics = main(args, CNN, cifar10)
 
     args.max_epochs = args.distillation_epochs
     args.lr = args.distillation_lr
 
     # Trains a CNN with distillation from the ResNet.
-    _, _, dist_metrics = main(args, StudentCNN, CIFAR10)
+    _, _, dist_metrics = main(args, StudentCNN, cifar10)
     
     print("---Experiment Results---")
     print("\nTeacher ResNet")

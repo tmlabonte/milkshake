@@ -103,6 +103,7 @@ class AdversarialResNet(ResNet):
                 result["probs"],
                 result["targets"],
                 self.hparams.num_classes,
+                self.hparams.num_groups,
             )
         
         if adv_result:
@@ -110,15 +111,18 @@ class AdversarialResNet(ResNet):
                 adv_result["probs"],
                 adv_result["targets"],
                 self.hparams.num_classes,
+                self.hparams.num_groups,
             )
             
         if result:
             result["acc"] = accs["acc"]
+            result["dataloader_idx"] = dataloader_idx
             if adv_result:
                 result["adv_loss"] = adv_result["loss"]
                 result["adv_acc"] = adv_accs["acc"]
         else:
             result = adv_result
+            result["dataloader_idx"] = dataloader_idx
             result["acc"] = adv_accs["acc"]
             result["adv_loss"] = result["loss"]
             result["adv_acc"] = adv_accs["acc"]
@@ -131,13 +135,15 @@ def pct(x):
     return round(x, 2) * 100
 
 def experiment(args):
+    cifar10 = CIFAR10(args)
+
     # Trains ERM baseline.
     args.adversarial_training = False
-    _, _, baseline_metrics = main(args, AdversarialResNet, CIFAR10)
+    _, _, baseline_metrics = main(args, AdversarialResNet, cifar10)
 
     # Trains ResNet with adversarial training.
     args.adversarial_training = True
-    _, _, adv_metrics = main(args, AdversarialResNet, CIFAR10)
+    _, _, adv_metrics = main(args, AdversarialResNet, cifar10)
     
     print("---Experiment Results---")
     print("\nERM Baseline")

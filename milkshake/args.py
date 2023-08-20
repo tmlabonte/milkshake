@@ -123,6 +123,8 @@ def add_input_args(parser):
                help="Whether to freeze all parameters except the last layer.")
     parser.add("--val_split", default=0.2, type=float,
                help="The proportion of training data to reserve for validation.")
+    parser.add("--wandb", default=True, type=lambda x: bool(strtobool(x)),
+               help="Whether to log with Weights and Biases (otherwise uses TensorBoard).")
     parser.add("--wandb_dir", default="wandb",
                help="The name of the directory where wandb outputs will be saved.")
     parser.add("--weights", default="",

@@ -1,6 +1,7 @@
 """Main script for training, validation, and testing."""
 
 # Imports Python builtins.
+from inspect import isclass
 import os
 import os.path as osp
 import resource
@@ -31,20 +32,17 @@ resource.setrlimit(resource.RLIMIT_NOFILE, (8192, rlimit[1]))
 os.environ["WANDB_SILENT"]="true"
 
 
-def load_model(args, model_class):
-    """Loads model for training and validation.
+def load_weights(args, model):
+    """Loads model weights or resumes training checkpoint.
 
     Args:
         args: The configuration dictionary.
-        model_class: A class which inherits from milkshake.models.Model.
+        model: A model which inherits from milkshake.models.Model.
 
     Returns:
-        An instance of model_class parameterized by args.
+        The input model, possibly with the state dict loaded.
     """
 
-    model = model_class(args)
-    print(model.load_msg())
- 
     args.ckpt_path = None
     if args.weights:
         if args.resume_training:
@@ -100,19 +98,23 @@ def load_trainer(args, addtl_callbacks=None):
             raise ValueError("addtl_callbacks should be None or a list.")
         callbacks.extend(addtl_callbacks)
 
-    os.makedirs(args.wandb_dir, exist_ok=True)
+    logger = True # Activates TensorBoardLogger by default.
+    if args.wandb:
+        os.makedirs(args.wandb_dir, exist_ok=True)
+        logger = WandbLogger(save_dir=args.wandb_dir, log_model="all")
+        
     trainer = Trainer.from_argparse_args(
         args,
         callbacks=callbacks,
-        logger=WandbLogger(save_dir=args.wandb_dir, log_model="all"),
+        logger=logger,
     )
 
     return trainer
 
 def main(
     args,
-    model_class,
-    datamodule_class,
+    model_or_model_class,
+    datamodule_or_datamodule_class,
     callbacks=None,
     model_hooks=None,
     verbose=True,
@@ -121,8 +123,8 @@ def main(
 
     Args:
         args: The configuration dictionary.
-        model_class: A class which inherits from milkshake.models.Model.
-        datamodule_class: A class which inherits from milkshake.datamodules.DataModule.
+        model_or_model_class: A model or class which inherits from milkshake.models.Model.
+        datamodule_or_datamodule_class: A datamodule or class which inherits from milkshake.datamodules.DataModule.
         callbacks: Any desired callbacks besides ModelCheckpoint and TQDMProgressBar.
         model_hooks: Any desired functions to run on the model before training.
         verbose: Whether to print the validation and test metrics.
@@ -136,12 +138,21 @@ def main(
     # Sets global seed for reproducibility. Due to CUDA operations which can't
     # be made deterministic, the results may not be perfectly reproducible.
     seed_everything(seed=args.seed, workers=True)
+    
+    if isclass(datamodule_or_datamodule_class):
+        datamodule = datamodule_or_datamodule_class(args)
+    else:
+        datamodule = datamodule_or_datamodule_class
 
-    datamodule = datamodule_class(args)
     args.num_classes = datamodule.num_classes
     args.num_groups = datamodule.num_groups
 
-    model = load_model(args, model_class)
+    if isclass(model_or_model_class):
+        model = model_or_model_class(args)
+    else:
+        model = model_or_model_class
+        
+    model = load_weights(args, model)
 
     if model_hooks:
         for hook in model_hooks:
@@ -155,7 +166,8 @@ def main(
     test_metrics = trainer.test(model, datamodule=datamodule, verbose=verbose)
 
     # Closes wanbd instance. Important for experiments which run main() many times.
-    wandb.finish()
+    if args.wandb:
+        wandb.finish()
     
     return model, val_metrics, test_metrics
 

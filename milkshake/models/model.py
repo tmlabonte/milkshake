@@ -41,6 +41,7 @@ class Model(pl.LightningModule):
 
         # Saves args into self.hparams.
         self.save_hyperparameters(args)
+        print(self.load_msg())
         
         self.model = None
         

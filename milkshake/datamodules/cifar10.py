@@ -53,7 +53,7 @@ class CIFAR10(DataModule):
     """DataModule for the CIFAR-10 dataset."""
 
     def __init__(self, args, **kwargs):
-        super().__init__(args, CIFAR10Dataset, 10, **kwargs)
+        super().__init__(args, CIFAR10Dataset, 10, 0, **kwargs)
 
     def augmented_transforms(self):
         transforms = Compose([
