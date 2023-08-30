@@ -166,8 +166,11 @@ def main(
     test_metrics = trainer.test(model, datamodule=datamodule, verbose=verbose)
 
     # Closes wanbd instance. Important for experiments which run main() many times.
+    # Also cleans up wandb cache by deleting files down to a 10GB limit.
     if args.wandb:
         wandb.finish()
+        cache = wandb.sdk.artifacts.artifacts_cache.get_artifacts_cache()
+        cache.cleanup(int(10e10))
     
     return model, val_metrics, test_metrics
 
