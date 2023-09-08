@@ -36,8 +36,14 @@ def add_input_args(parser):
                help="The number of samples to include per batch.")
     parser.add("--bias", default=True, type=lambda x: bool(strtobool(x)),
                help="Whether to add a bias parameter to each model weight.")
-    parser.add("--ckpt_every_n_epoch", default=1, type=int,
+    parser.add("--check_val_every_n_epochs", default=1, dest="check_val_every_n_epoch", type=int,
+               help="The number of epochs after which to run validation.")
+    parser.add("--check_val_every_n_steps", dest="val_check_interval", type=int,
+               help="The number of steps after which to run validation.")
+    parser.add("--ckpt_every_n_epochs", default=1, type=int,
                help="The number of epochs after which a model checkpoint will be saved.")
+    parser.add("--ckpt_every_n_steps", type=int,
+               help="The number of steps after which a model checkpoint will be saved.")
     parser.add("--class_weights", default=[], nargs="*", type=float,
                help="The amount by which to weight each class in the loss function.")
     parser.add("--cnn_batchnorm", default=True, type=lambda x: bool(strtobool(x)),

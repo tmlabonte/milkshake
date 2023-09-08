@@ -6,6 +6,7 @@ import os.path as osp
 from glob import glob
 import math
 import numpy as np
+import warnings
 
 # Imports PyTorch packages.
 import torch
@@ -220,4 +221,35 @@ def random_split(dataset, lengths, generator):
     indices = torch.randperm(sum(lengths), generator=generator).tolist() 
     return [Subset(dataset, indices[offset - length : offset])
             for offset, length in zip(_accumulate(lengths), lengths)]
+
+def ignore_warnings():
+    """Adds nuisance warnings to ignore list.
+
+    Should be called before import pytorch_lightning.
+    """
+
+    warnings.filterwarnings(
+        "ignore",
+        message=r"The feature ([^\s]+) is currently marked under review",
+    )
+
+    warnings.filterwarnings(
+        "ignore",
+        message=r"In the future ([^\s]+)",
+    )
+
+    warnings.filterwarnings(
+        "ignore",
+        message=r"Lazy modules ([^\s]+)",
+    )
+
+    warnings.filterwarnings(
+        "ignore",
+        message=r"There is a wandb run already in progress ([^\s]+)",
+    )
+
+    original_filterwarnings = warnings.filterwarnings
+    def _filterwarnings(*xargs, **kwargs):
+        return original_filterwarnings(*xargs, **{**kwargs, "append": True})
+    warnings.filterwarnings = _filterwarnings
 

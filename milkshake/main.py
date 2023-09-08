@@ -1,5 +1,9 @@
 """Main script for training, validation, and testing."""
 
+# Ignores nuisance warnings. Must be called first.
+from milkshake.utils import ignore_warnings
+ignore_warnings()
+
 # Imports Python builtins.
 from inspect import isclass
 import os
@@ -11,15 +15,18 @@ import wandb
 from PIL import ImageFile
 
 # Imports PyTorch packages.
+from lightning_lite.utilities.seed import seed_everything
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar
+from pytorch_lightning.callbacks import ModelCheckpoint, RichProgressBar
 from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.utilities.seed import seed_everything
 import torch
 
 # Imports milkshake packages.
 from milkshake.args import parse_args
 from milkshake.imports import valid_models_and_datamodules
+
+# Sets matmul precision to take advantage of Tensor Cores.
+torch.set_float32_matmul_precision("high")
 
 # Prevents PIL from throwing invalid error on large image files.
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -72,25 +79,35 @@ def load_trainer(args, addtl_callbacks=None):
         ValueError: addtl_callbacks is not None and not a list.
     """
 
+    # Checking validation by epochs and by steps are mutually exclusive.
+    if args.val_check_interval:
+        args.check_val_every_n_epoch = None
+
+    # Checkpointing by epochs and by steps are mutually exclusive.
+    if args.ckpt_every_n_steps:
+        args.ckpt_every_n_epochs = None
+
     # Checkpoints model at the specified number of epochs.
     checkpointer1 = ModelCheckpoint(
         filename="{epoch:02d}-{val_loss:.3f}-{val_acc:.3f}",
         save_top_k=-1,
-        every_n_epochs=args.ckpt_every_n_epoch,
+        every_n_epochs=args.ckpt_every_n_epochs,
+        every_n_train_steps=args.ckpt_every_n_steps,
     )
 
     # Checkpoints model with respect to validation loss.
     checkpointer2 = ModelCheckpoint(
         filename="best-{epoch:02d}-{val_loss:.3f}-{val_acc:.3f}",
         monitor="val_loss",
-        every_n_epochs=args.ckpt_every_n_epoch,
+        every_n_epochs=args.ckpt_every_n_epochs,
+        every_n_train_steps=args.ckpt_every_n_steps,
     )
 
-    progress_bar = TQDMProgressBar(refresh_rate=args.refresh_rate)
+    progress_bar = RichProgressBar(refresh_rate=args.refresh_rate)
 
     # Sets DDP strategy for multi-GPU training.
     args.devices = int(args.devices)
-    args.strategy = "ddp" if args.devices > 1 else None
+    args.strategy = "ddp_find_unused_parameters_false" if args.devices > 1 else None
 
     callbacks = [checkpointer1, checkpointer2, progress_bar]
     if addtl_callbacks is not None:
@@ -106,6 +123,7 @@ def load_trainer(args, addtl_callbacks=None):
     trainer = Trainer.from_argparse_args(
         args,
         callbacks=callbacks,
+        deterministic=True,
         logger=logger,
     )
 
@@ -135,22 +153,19 @@ def main(
 
     os.makedirs(args.out_dir, exist_ok=True)
 
-    # Sets global seed for reproducibility. Due to CUDA operations which can't
-    # be made deterministic, the results may not be perfectly reproducible.
+    # Sets global seed for reproducibility.
     seed_everything(seed=args.seed, workers=True)
     
-    if isclass(datamodule_or_datamodule_class):
-        datamodule = datamodule_or_datamodule_class(args)
-    else:
-        datamodule = datamodule_or_datamodule_class
+    datamodule = datamodule_or_datamodule_class
+    if isclass(datamodule):
+        datamodule = datamodule(args)
 
     args.num_classes = datamodule.num_classes
     args.num_groups = datamodule.num_groups
 
-    if isclass(model_or_model_class):
-        model = model_or_model_class(args)
-    else:
-        model = model_or_model_class
+    model = model_or_model_class
+    if isclass(model):
+        model = model(args)
         
     model = load_weights(args, model)
 
@@ -162,8 +177,17 @@ def main(
     if not args.eval_only:
         trainer.fit(model, datamodule=datamodule, ckpt_path=args.ckpt_path)
 
+    # Reloads trainer for validation and testing. Must use a single device.
+    # Note that this procedure resets the "epoch" and "step" trainer metrics.
+    orig_devices = args.devices
+    if args.devices > 1 and trainer.is_global_zero:
+        torch.distributed.destroy_process_group()
+        args.devices = 1
+        trainer = load_trainer(args, addtl_callbacks=callbacks)
+
     val_metrics = trainer.validate(model, datamodule=datamodule, verbose=verbose)
     test_metrics = trainer.test(model, datamodule=datamodule, verbose=verbose)
+    args.devices = orig_devices
 
     # Closes wanbd instance. Important for experiments which run main() many times.
     # Also cleans up wandb cache by deleting files down to a 10GB limit.

@@ -92,9 +92,9 @@ class ResNet(Model):
         # Optionally adds regularization penalizing the l1 norm of model parameters.
         if self.hparams.resnet_l1_regularization:
             if self.hparams.train_fc_only:
-                params = torch.cat([x.view(-1) for x in self.model.fc.parameters()])
+                params = torch.cat([param.view(-1) for param in self.model.fc.parameters()])
             else:
-                params = torch.cat([x.view(-1) for x in self.model.parameters()])
+                params = torch.cat([param.view(-1) for param in self.model.parameters()])
 
             param_l1_norm = torch.linalg.vector_norm(params, ord=1)
             result["loss"] += self.hparams.resnet_l1_regularization * param_l1_norm

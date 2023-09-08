@@ -1,5 +1,9 @@
 """Main file for model distillation experiments."""
 
+# Ignores nuisance pl_bolts warnings. Must be called first.
+from milkshake.utils import ignore_pl_bolts_warnings
+ignore_pl_bolts_warnings()
+
 # Imports Python packages.
 from configargparse import Parser
 
@@ -74,6 +78,8 @@ def pct(x):
     return round(x, 2) * 100
 
 def experiment(args):
+    # TODO: Broken for multi-GPU.
+
     cifar10 = CIFAR10(args)
 
     # Trains a teacher ResNet.

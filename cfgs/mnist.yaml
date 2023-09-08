@@ -1,4 +1,3 @@
-# 98.5% test acc
 accelerator: gpu
 batch_size: 256
 check_val_every_n_epoch: 10

@@ -1,5 +1,9 @@
 """Main file for adversarial training experiments with PGD attacks."""
 
+# Ignores nuisance warnings. Must be called first.
+from milkshake.utils import ignore_warnings
+ignore_warnings()
+
 # Imports Python packages.
 from configargparse import Parser
 
@@ -135,6 +139,8 @@ def pct(x):
     return round(x, 2) * 100
 
 def experiment(args):
+    # TODO: Broken for multi-GPU.
+
     cifar10 = CIFAR10(args)
 
     # Trains ERM baseline.

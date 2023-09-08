@@ -10,6 +10,7 @@ import pytorch_lightning as pl
 import torch
 from torch import nn
 import torch.nn.functional as F
+from torch.nn.parameter import is_lazy
 from torch.optim import Adam, AdamW, SGD
 from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR, MultiStepLR
 import torchvision.models as models
@@ -19,6 +20,7 @@ from milkshake.utils import compute_accuracy, to_np
 
 # TODO: Organize logging code in a separate file.
 # TODO: Implement after_n_steps logging similarly to after_epoch.
+# TODO: Clean up collate_metrics.
 
 
 class Model(pl.LightningModule):
@@ -52,6 +54,34 @@ class Model(pl.LightningModule):
     def load_msg(self):
         """Returns a descriptive message about the Model configuration."""
 
+    def has_uninitialized_params(self):
+        """Returns whether the model has uninitialized parameters."""
+
+        for param in self.model.parameters():
+            if is_lazy(param):
+                return True
+        return False
+
+    def setup(self, stage):
+        """Initializes model parameters if necessary.
+
+        Args:
+            stage: "train", "val", or "test".
+        """
+
+        if self.has_uninitialized_params():
+            match stage:
+                case "fit":
+                    dataloader = self.trainer.datamodule.train_dataloader()
+                case "validate":
+                    dataloader = self.trainer.datamodule.val_dataloader()
+                case "test":
+                    dataloader = self.trainer.datamodule.test_dataloader()
+                case "predict":
+                    dataloader = self.trainer.datamodule.predict_dataloader()
+            dummy_batch = next(iter(dataloader))
+            self.forward(dummy_batch[0])
+
     def forward(self, inputs):
         """Predicts using the model.
 
@@ -61,7 +91,6 @@ class Model(pl.LightningModule):
         Returns:
             The model prediction as a torch.Tensor.
         """
-
         return torch.squeeze(self.model(inputs), dim=-1)
 
     def configure_optimizers(self):
