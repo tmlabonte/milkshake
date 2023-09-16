@@ -1,8 +1,8 @@
 """Main file for model distillation experiments."""
 
 # Ignores nuisance pl_bolts warnings. Must be called first.
-from milkshake.utils import ignore_pl_bolts_warnings
-ignore_pl_bolts_warnings()
+from milkshake.utils import ignore_warnings
+ignore_warnings()
 
 # Imports Python packages.
 from configargparse import Parser
@@ -75,18 +75,16 @@ class StudentCNN(CNN):
         return {"loss": loss, "probs": probs, "targets": targets}
 
 def pct(x):
-    return round(x, 2) * 100
+    return round(x, 3) * 100
 
 def experiment(args):
-    # TODO: Broken for multi-GPU.
-
     cifar10 = CIFAR10(args)
 
     # Trains a teacher ResNet.
     model, _, resnet_metrics  = main(args, ResNet, cifar10)
 
     teacher_version = model.trainer.logger.version
-    args.teacher_weights = get_weights(teacher_version, idx=-1)
+    args.teacher_weights = get_weights(args, teacher_version, idx=-1)
     del model
 
     args.max_epochs = args.cnn_epochs

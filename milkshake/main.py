@@ -36,7 +36,7 @@ rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
 resource.setrlimit(resource.RLIMIT_NOFILE, (8192, rlimit[1]))
 
 # Silences wandb printouts.
-os.environ["WANDB_SILENT"]="true"
+os.environ["WANDB_SILENT"] = "true"
 
 
 def load_weights(args, model):
@@ -104,11 +104,7 @@ def load_trainer(args, addtl_callbacks=None):
     )
 
     progress_bar = RichProgressBar(refresh_rate=args.refresh_rate)
-
-    # Sets DDP strategy for multi-GPU training.
-    args.devices = int(args.devices)
-    args.strategy = "ddp_find_unused_parameters_false" if args.devices > 1 else None
-
+ 
     callbacks = [checkpointer1, checkpointer2, progress_bar]
     if addtl_callbacks is not None:
         if not isinstance(addtl_callbacks, list):
@@ -119,7 +115,15 @@ def load_trainer(args, addtl_callbacks=None):
     if args.wandb:
         os.makedirs(args.wandb_dir, exist_ok=True)
         logger = WandbLogger(save_dir=args.wandb_dir, log_model="all")
-        
+
+    # Sets DDP strategy for multi-GPU training.
+    # Important note: running multiple fit/validate/test loops using ddp (like
+    # the Milkshake example experiments) is an anti-pattern in PyTorch Lightning
+    # (see https://github.com/Lightning-AI/lightning/issues/8375). However, ddp
+    # is much faster than the alternative, ddp_spawn. Therefore, we recommend
+    # using ddp for single training jobs and ddp_spawn for experiments.
+    args.strategy = args.strategy if args.devices > 1 else None
+
     trainer = Trainer.from_argparse_args(
         args,
         callbacks=callbacks,
@@ -152,13 +156,21 @@ def main(
     """
 
     os.makedirs(args.out_dir, exist_ok=True)
+    args.devices = int(args.devices)
 
     # Sets global seed for reproducibility.
     seed_everything(seed=args.seed, workers=True)
-    
+
     datamodule = datamodule_or_datamodule_class
     if isclass(datamodule):
         datamodule = datamodule(args)
+
+    # Sets persistent workers when using ddp_spawn. Must be set here because a
+    # DataModule may be passed as an arg to main prior to ddp initialization.
+    if args.devices > 1 and \
+       "ddp_spawn" in args.strategy and \
+       not datamodule.persistent_workers:
+        datamodule.persistent_workers = True
 
     args.num_classes = datamodule.num_classes
     args.num_groups = datamodule.num_groups
@@ -180,16 +192,19 @@ def main(
     # Reloads trainer for validation and testing. Must use a single device.
     # Note that this procedure resets the "epoch" and "step" trainer metrics.
     orig_devices = args.devices
+    orig_strategy = args.strategy
     if args.devices > 1 and trainer.is_global_zero:
-        torch.distributed.destroy_process_group()
+        if "ddp_spawn" not in args.strategy:
+            torch.distributed.destroy_process_group()
         args.devices = 1
         trainer = load_trainer(args, addtl_callbacks=callbacks)
 
     val_metrics = trainer.validate(model, datamodule=datamodule, verbose=verbose)
     test_metrics = trainer.test(model, datamodule=datamodule, verbose=verbose)
     args.devices = orig_devices
+    args.strategy = orig_strategy
 
-    # Closes wanbd instance. Important for experiments which run main() many times.
+    # Closes wanbd instance (for experiments which run main() many times).
     # Also cleans up wandb cache by deleting files down to a 10GB limit.
     if args.wandb:
         wandb.finish()

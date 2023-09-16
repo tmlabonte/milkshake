@@ -9,4 +9,5 @@ lr: 0.1
 lr_scheduler: cosine
 max_epochs: 100
 model: cnn
+strategy: ddp_find_unused_parameters_false
 val_split: 0.1

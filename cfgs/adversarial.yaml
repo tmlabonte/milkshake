@@ -9,4 +9,5 @@ max_epochs: 20
 metrics: ["loss", "acc", "adv_loss", "adv_acc"]
 model: resnet
 resnet_small_input: True
+strategy: ddp_spawn_find_unused_parameters_false
 val_split: 0.1

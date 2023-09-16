@@ -21,6 +21,8 @@ def parse_args():
 
     parser = add_input_args(parser)
     parser = Trainer.add_argparse_args(parser)
+    parser.set_defaults(strategy="ddp_find_unused_parameters_false")
+
     args = parser.parse_args()
 
     return args
@@ -109,6 +111,8 @@ def add_input_args(parser):
                help="The name of the optimizer to utilize.")
     parser.add("--out_dir", default="out",
                help="The name of the directory where outputs will be saved.")
+    parser.add("--persistent_workers", default=False, type=lambda x: bool(strtobool(x)),
+               help="Whether to use persistent workers (typically for ddp_spawn).")
     parser.add("--refresh_rate", default=1, type=int,
                help="The number of batches after which to update the progress bar.")
     parser.add("--resnet_small_input", default=False, type=lambda x: bool(strtobool(x)),

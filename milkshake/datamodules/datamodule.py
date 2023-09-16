@@ -68,6 +68,8 @@ class DataModule(VisionDataModule):
             val_split=args.val_split,
         )
 
+        self.persistent_workers = args.persistent_workers
+
         self.dataset_class = dataset_class
         self.num_classes = num_classes
         self.num_groups = num_groups
@@ -286,10 +288,11 @@ class DataModule(VisionDataModule):
         return DataLoader(
             dataset,
             batch_size=self.batch_size,
-            shuffle=shuffle,
-            sampler=sampler,
-            num_workers=self.num_workers,
             drop_last=self.drop_last,
+            num_workers=self.num_workers,
             pin_memory=self.pin_memory,
+            persistent_workers=self.persistent_workers,
+            sampler=sampler,
+            shuffle=shuffle,
         )
 

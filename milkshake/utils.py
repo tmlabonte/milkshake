@@ -16,10 +16,11 @@ from torch._utils import _accumulate
 from milkshake.datamodules.dataset import Subset
 
 
-def get_weights(version, best=None, idx=None):
+def get_weights(args, version, best=None, idx=None):
     """Returns weights path given model version and checkpoint index.
     
     Args:
+        args: The configuration dictionary.
         version: The model's PyTorch Lightning version.
         best: Whether to return the best model checkpoint.
         idx: The model's checkpoint index (-1 selects the latest checkpoint).
@@ -27,13 +28,17 @@ def get_weights(version, best=None, idx=None):
     Returns:
         The filepath of the desired model weights.
     """
+
+    ckpt_path = ""
+    if args.wandb:
+        ckpt_path = args.wandb_dir
     
     # Selects the right naming convention for PL versions based on
     # whether the version input is an int or a string.
     if type(version) == int:
-        ckpt_path = f"lightning_logs/version_{version}/checkpoints/*"
+        ckpt_path = osp.join(ckpt_path, f"lightning_logs/version_{version}/checkpoints/*")
     else:
-        ckpt_path = f"lightning_logs/{version}/checkpoints/*"
+        ckpt_path = osp.join(ckpt_path, f"lightning_logs/{version}/checkpoints/*")
 
     list_of_weights = glob(osp.join(os.getcwd(), ckpt_path))
     

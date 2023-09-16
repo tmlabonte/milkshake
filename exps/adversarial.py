@@ -136,11 +136,9 @@ class AdversarialResNet(ResNet):
         return result
 
 def pct(x):
-    return round(x, 2) * 100
+    return round(x, 3) * 100
 
 def experiment(args):
-    # TODO: Broken for multi-GPU.
-
     cifar10 = CIFAR10(args)
 
     # Trains ERM baseline.
