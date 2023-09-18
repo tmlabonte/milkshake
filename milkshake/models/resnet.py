@@ -29,11 +29,12 @@ class ResNet(Model):
             152: models.resnet152,
         }
 
-        # TODO: Include different ResNet pretraining options.
+        # TODO: Add more ResNet pretraining options.
+        weights = None
         if args.resnet_pretrained:
-            self.model = resnets[args.resnet_version](weights="IMAGENET1K_V1")
-        else:
-            self.model = resnets[args.resnet_version](weights=None)
+            weights = "IMAGENET1K_V1"
+
+        self.model = resnets[args.resnet_version](weights=weights)
 
         # Reduces the kernel size and stride for smaller inputs, e.g., CIFAR-10
         # images (32 x 32) instead of ImageNet images (224 x 224).

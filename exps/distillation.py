@@ -1,6 +1,6 @@
 """Main file for model distillation experiments."""
 
-# Ignores nuisance pl_bolts warnings. Must be called first.
+# Ignores nuisance warnings. Must be called first.
 from milkshake.utils import ignore_warnings
 ignore_warnings()
 
@@ -97,6 +97,8 @@ def experiment(args):
 
     args.max_epochs = args.distillation_epochs
     args.lr = args.distillation_lr
+    args.check_val_every_n_epoch = args.distillation_epochs // 10
+    args.ckpt_every_n_epoch = args.distillation_epochs
 
     # Trains a CNN with distillation from the ResNet.
     _, _, dist_metrics = main(args, StudentCNN, cifar10)
@@ -120,7 +122,7 @@ if __name__ == "__main__":
     parser = Trainer.add_argparse_args(parser)
     parser.add("--cnn_epochs", default=100, type=int)
     parser.add("--cnn_lr", default=0.1, type=float)
-    parser.add("--distillation_epochs", default=100, type=float)
+    parser.add("--distillation_epochs", default=100, type=int)
     parser.add("--distillation_lr", default=0.02, type=float)
 
     args = parser.parse_args()

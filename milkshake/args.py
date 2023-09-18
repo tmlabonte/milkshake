@@ -129,6 +129,10 @@ def add_input_args(parser):
                help="Whether to load the weights from the given checkpoint.")
     parser.add("--seed", default=1, type=int,
                help="The random seed to utilize.")
+    parser.add("--swin_transformer_pretrained", default=True, type=lambda x: bool(strtobool(x)),
+               help="Whether to use pretrained weights in the Swin Transformer.")
+    parser.add("--swin_transformer_version", choices=["tiny", "small", "base"], default="tiny",
+               help="The Swin Transformer version to utilize.")
     parser.add("--train_fc_only", default=False, type=lambda x: bool(strtobool(x)),
                help="Whether to freeze all parameters except the last layer.")
     parser.add("--val_split", default=0.2, type=float,
