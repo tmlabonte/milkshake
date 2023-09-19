@@ -6,7 +6,7 @@ datamodule: cifar10
 devices: 1
 lr: 0.05
 max_epochs: 20
-metrics: ["loss", "acc", "adv_loss", "adv_acc"]
+metrics: [loss, acc, adv_loss, adv_acc]
 model: resnet
 resnet_small_input: True
 strategy: ddp_spawn_find_unused_parameters_false
