@@ -10,6 +10,5 @@ lr_warmup_epochs: 5
 max_epochs: 100
 model: swin_transformer
 optimizer: adamw
-swin_transformer_version: base
 val_split: 0.1
 weight_decay: 5e-4
