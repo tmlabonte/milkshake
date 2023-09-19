@@ -9,5 +9,6 @@ lr: 0.05
 max_epochs: 20
 model: resnet
 resnet_small_input: True
+resnet_version: 50
 strategy: ddp_spawn_find_unused_parameters_false
 val_split: 0.1

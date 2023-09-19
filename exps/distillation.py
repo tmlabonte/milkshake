@@ -22,13 +22,6 @@ from milkshake.models.resnet import ResNet
 from milkshake.utils import get_weights
 
 
-def check_type(logits):
-    """Ensures logits is a torch.Tensor."""
-    
-    if isinstance(logits, (tuple, list)):
-        return torch.squeeze(logits[0], dim=-1)
-    return logits
-
 class StudentCNN(CNN):
     """Class for a CNN which learns via distillation from the logits of a teacher ResNet."""
     
@@ -62,10 +55,10 @@ class StudentCNN(CNN):
 
         inputs, targets = batch
 
-        logits = check_type(self(inputs))
+        logits = self(inputs)
 
         with torch.no_grad():
-            teacher_logits = check_type(self.teacher(inputs))
+            teacher_logits = self.teacher(inputs)
 
         # Computes MSE loss between student and teacher logits.
         loss = F.mse_loss(logits, teacher_logits)
