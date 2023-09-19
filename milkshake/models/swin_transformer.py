@@ -1,4 +1,4 @@
-"""ResNet model implementation."""
+"""Swin Transformer model implementation."""
 
 # Imports PyTorch packages.
 import torch
