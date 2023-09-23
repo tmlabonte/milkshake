@@ -29,29 +29,16 @@ class ResNet(Model):
             152: models.resnet152,
         }
 
-        # TODO: Add more ResNet pretraining options.
         weights = None
         if args.resnet_pretrained:
             weights = "IMAGENET1K_V1"
 
         self.model = resnets[args.resnet_version](weights=weights)
 
-        # Reduces the kernel size and stride for smaller inputs, e.g., CIFAR-10
-        # images (32 x 32) instead of ImageNet images (224 x 224).
-        if args.resnet_small_input:
+        if args.input_channels != 3:
             self.model.conv1 = nn.Conv2d(
-                args.input_channels,
-                64,
-                kernel_size=3,
-                stride=1,
-                padding=1,
-                bias=False,
-            )
-            self.model.maxpool = nn.Identity()
-        elif args.input_channels != 3:
-            self.model.conv1 = nn.Conv2d(
-                args.input_channels,
-                64,
+                in_channels=args.input_channels,
+                out_channels=64,
                 kernel_size=7,
                 stride=2,
                 padding=3,
@@ -80,12 +67,15 @@ class ResNet(Model):
         """Performs a single step of prediction and loss calculation.
 
         Args:
-            batch: A tuple containing the inputs and targets as torch.tensor.
+            batch: A tuple containing the inputs and targets as torch.Tensor.
             idx: The index of the given batch.
 
         Returns:
             A dictionary containing the loss, prediction probabilities, and targets.
-            The probs and targets are moved to CPU to free up GPU memory.
+
+        Raises:
+            ValueError: Class weights are specified with MSE loss, or MSE loss
+            is specified for a multiclass classification task.
         """
 
         result = super().step(batch, idx)
@@ -93,12 +83,16 @@ class ResNet(Model):
         # Optionally adds regularization penalizing the l1 norm of model parameters.
         if self.hparams.resnet_l1_regularization:
             if self.hparams.train_fc_only:
-                params = torch.cat([param.view(-1) for param in self.model.fc.parameters()])
+                params = self.model.fc.parameters()
             else:
-                params = torch.cat([param.view(-1) for param in self.model.parameters()])
+                params = self.model.parameters()
+
+            # Vectorizes selected parameters.
+            params = torch.cat([
+                param.view(-1) for param in params
+            ])
 
             param_l1_norm = torch.linalg.vector_norm(params, ord=1)
             result["loss"] += self.hparams.resnet_l1_regularization * param_l1_norm
 
         return result
-

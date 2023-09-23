@@ -49,7 +49,7 @@ class MultiNLIDataset(Dataset):
                 "d7a46ddf91786804c/dataset_files/utils_glue.py"
             )
             wget.download(url, out=multinli_dir)
-    
+
     def load_data(self):
         multinli_dir = osp.join(self.root, "multinli")
         sys.path.append(multinli_dir)

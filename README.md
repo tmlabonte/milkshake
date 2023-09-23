@@ -3,7 +3,7 @@
 
 Milkshake is my core repository for ML research designed around rapid prototyping and simple implementations of research necessities. It features a modular and object-oriented structure which decouples the training workflow from the research code, enabling complex experiments to be written in under 200 lines of code. Milkshake is written in PyTorch 1.12 with PyTorch Lightning 1.9, and to me represents the fulfillment of the Lightning 1.x vision of rapid research without the boilerplate.
 
-Note that milkshake is a GitHub template: it is intended for use as a foundation which makes it easy to add your own research code. Currently, there are 8 datasets and 6 models implemented across both vision and language tasks; contributions of models and datasets are welcomed!
+Note that milkshake is a GitHub template: it is intended for use as a foundation which makes it easy to add your own research code. Currently, there are 8 datasets and 7 models implemented across both vision and language tasks; contributions of models and datasets are welcomed!
 
 ### Installation
 ```

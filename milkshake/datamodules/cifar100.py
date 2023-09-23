@@ -8,7 +8,13 @@ import pickle
 # Imports PyTorch packages.
 from pl_bolts.transforms.dataset_normalizations import cifar10_normalization
 from torchvision.datasets import CIFAR100 as TorchvisionCIFAR100
-from torchvision.transforms import Compose, RandomCrop, RandomHorizontalFlip, ToTensor
+from torchvision.transforms import (
+    Compose,
+    RandomResizedCrop,
+    RandomHorizontalFlip,
+    Resize,
+    ToTensor,
+)
 
 # Imports milkshake packages.
 from milkshake.datamodules.dataset import Dataset
@@ -44,7 +50,7 @@ class CIFAR100Dataset(Dataset, TorchvisionCIFAR100):
                     self.targets.extend(entry["fine_labels"])
 
         self.data = np.vstack(self.data).reshape(-1, 3, 32, 32)
-        self.data = self.data.transpose((0, 2, 3, 1))  # convert to HWC
+        self.data = self.data.transpose((0, 2, 3, 1))  # HWC format for PIL
         self.targets = np.asarray(self.targets)
 
         self._load_meta()
@@ -57,7 +63,7 @@ class CIFAR100(DataModule):
 
     def augmented_transforms(self):
         transforms = Compose([
-            RandomCrop(32, padding=4),
+            RandomResizedCrop(self.image_size),
             RandomHorizontalFlip(),
             ToTensor(),
             cifar10_normalization(),
@@ -67,9 +73,9 @@ class CIFAR100(DataModule):
 
     def default_transforms(self):
         transforms = Compose([
+            Resize(self.image_size),
             ToTensor(),
             cifar10_normalization()
         ])
 
         return transforms
-

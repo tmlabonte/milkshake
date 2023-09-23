@@ -8,10 +8,10 @@ import numpy as np
 import wilds
 
 # Imports PyTorch packages.
+from pl_bolts.transforms.dataset_normalizations import imagenet_normalization
 from torchvision.transforms import (
     CenterCrop,
     Compose,
-    Normalize,
     RandomHorizontalFlip,
     RandomResizedCrop,
     Resize,
@@ -57,7 +57,7 @@ class FMOWDataset(Dataset):
             np.argwhere(spurious == 3).squeeze(),
             np.argwhere(spurious == 4).squeeze(),
         ]
-        
+
         # Splits 1 and 2 are in-distribution val and test (unused).
         split = dataset._split_array
         self.train_indices = np.argwhere(split == 0).flatten()
@@ -79,20 +79,22 @@ class FMOW(DataModule):
 
     def augmented_transforms(self):
         transform = Compose([
-            RandomResizedCrop((224, 224), scale=(0.7, 1.0)),
+            RandomResizedCrop(self.image_size, scale=(0.7, 1.0)),
             RandomHorizontalFlip(),
             ToTensor(),
-            Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            imagenet_normalization(),
         ])
 
         return transform
 
     def default_transforms(self):
+        resize_ratio = 256 / 224
+
         transform = Compose([
-            Resize((256, 256)),
-            CenterCrop((224, 224)),
+            Resize(int(resize_ratio * self.image_size)),
+            CenterCrop(self.image_size),
             ToTensor(),
-            Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            imagenet_normalization(),
         ])
 
         return transform

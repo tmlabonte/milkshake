@@ -9,6 +9,5 @@ lr_scheduler: cosine_warmup
 lr_warmup_epochs: 5
 max_epochs: 100
 model: resnet
-resnet_small_input: True
 val_split: 0.1
 weight_decay: 5e-4

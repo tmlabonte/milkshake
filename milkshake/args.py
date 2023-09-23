@@ -76,6 +76,8 @@ def add_input_args(parser):
                help="The input dimension in the FFN.")
     parser.add("--ffn_num_layers", default=3, type=int,
                help="The number of layers in the FFN.")
+    parser.add("--image_size", default=224, type=int,
+               help="The height and width for image resizing (default is ImageNet).")
     parser.add("--input_channels", default=3, type=int,
                help="The number of channels for image inputs.")
     parser.add("--label_noise", default=0, type=float,
@@ -83,7 +85,7 @@ def add_input_args(parser):
     parser.add("--loss", choices=["cross_entropy", "mse"], default="cross_entropy",
                help="The name of the loss function to utilize for optimization.")
     parser.add("--lr", type=float,
-               help="The learning rate to utilize for optimization.") 
+               help="The learning rate to utilize for optimization.")
     parser.add("--lr_drop", default=0.1, type=float,
                help="The factor by which to drop the LR when using the step scheduler.")
     parser.add("--lr_scheduler", choices=["cosine", "cosine_warmup", "linear", "step"], default="step",
@@ -113,14 +115,10 @@ def add_input_args(parser):
                help="The name of the directory where outputs will be saved.")
     parser.add("--persistent_workers", default=False, type=lambda x: bool(strtobool(x)),
                help="Whether to use persistent workers (typically for ddp_spawn).")
-    parser.add("--refresh_rate", default=1, type=int,
-               help="The number of batches after which to update the progress bar.")
-    parser.add("--resnet_small_input", default=False, type=lambda x: bool(strtobool(x)),
-               help="Whether to reduce the size of the first ResNet layer for small inputs.")
     parser.add("--resnet_l1_regularization", default=0, type=float,
                help="Whether to apply l1-norm regularization to the ResNet last layer.")
     parser.add("--resnet_pretrained", default=True, type=lambda x: bool(strtobool(x)),
-               help="Whether to use pretrained weights in the ResNet.")
+               help="Whether to use ImageNet pretrained weights in the ResNet.")
     parser.add("--resnet_version", choices=[18, 34, 50, 101, 152], default=18, type=int,
                help="The ResNet version to utilize.")
     parser.add("--resume_training", default=False, type=lambda x: bool(strtobool(x)),
@@ -129,14 +127,22 @@ def add_input_args(parser):
                help="Whether to load the weights from the given checkpoint.")
     parser.add("--seed", default=1, type=int,
                help="The random seed to utilize.")
-    parser.add("--swin_transformer_pretrained", default=True, type=lambda x: bool(strtobool(x)),
-               help="Whether to use pretrained weights in the Swin Transformer.")
-    parser.add("--swin_transformer_version", choices=["tiny", "small", "base"], default="tiny",
+    parser.add("--swin_pretrained", choices=["imagenet1k", "imagenet21k"], default="imagenet1k",
+               help="The pretrained weights to use in the Swin Transformer.")
+    parser.add("--swin_version", choices=["tiny", "small", "base", "large"], default="base",
                help="The Swin Transformer version to utilize.")
+    parser.add("--swin_type", choices=["classifier", "feature_extractor"], default="classifier",
+               help="Whether to use the Swin Transformer as a classifier or feature extractor.")
     parser.add("--train_fc_only", default=False, type=lambda x: bool(strtobool(x)),
                help="Whether to freeze all parameters except the last layer.")
     parser.add("--val_split", default=0.2, type=float,
                help="The proportion of training data to reserve for validation.")
+    parser.add("--vit_pretrained", choices=["imagenet1k", "imagenet21k"], default="imagenet1k",
+               help="The pretrained weights to use in the Vision Transformer.")
+    parser.add("--vit_version", choices=["base", "large"], default="base",
+               help="The Vision Transformer version to utilize.")
+    parser.add("--vit_type", choices=["classifier", "feature_extractor"], default="classifier",
+               help="Whether to use the Vision Transformer as a classifier or feature extractor.")
     parser.add("--wandb", default=True, type=lambda x: bool(strtobool(x)),
                help="Whether to log with Weights and Biases (otherwise uses TensorBoard).")
     parser.add("--wandb_dir", default="wandb",
@@ -145,5 +151,5 @@ def add_input_args(parser):
                help="The filepath of the model checkpoint to load or resume.")
     parser.add("--weight_decay", default=1e-4, type=float,
                help="The l2-norm regularization to utilize during optimization.")
-    
+
     return parser

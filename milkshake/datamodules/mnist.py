@@ -3,7 +3,7 @@
 # Imports PyTorch packages.
 import torch
 from torchvision.datasets import MNIST as TorchVisionMNIST
-from torchvision.transforms import Compose, Normalize, ToTensor
+from torchvision.transforms import Compose, Normalize, Resize
 
 # Imports milkshake packages.
 from milkshake.datamodules.datamodule import DataModule
@@ -33,5 +33,7 @@ class MNIST(DataModule):
         return self.default_transforms()
 
     def default_transforms(self):
-        return Normalize(mean=(0.5,), std=(0.5,))
-
+        return Compose([
+            Resize(self.image_size),
+            Normalize(mean=(0.5,), std=(0.5,)),
+        ])

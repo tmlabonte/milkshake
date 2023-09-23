@@ -5,6 +5,7 @@ ckpt_every_n_epoch: 100
 cnn_padding: 1
 datamodule: cifar10
 devices: 1
+image_size: 32
 lr: 0.1
 lr_scheduler: cosine
 max_epochs: 100

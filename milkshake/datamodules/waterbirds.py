@@ -6,16 +6,13 @@ import os.path as osp
 # Imports Python packages.
 import numpy as np
 import pandas as pd
-from PIL import Image
 
 # Imports PyTorch packages.
-import torch
-import torch.nn.functional as F
+from pl_bolts.transforms.dataset_normalizations import imagenet_normalization
 from torchvision.datasets.utils import download_and_extract_archive
 from torchvision.transforms import (
     CenterCrop,
     Compose,
-    Normalize,
     RandomHorizontalFlip,
     RandomResizedCrop,
     Resize,
@@ -66,7 +63,7 @@ class WaterbirdsDataset(Dataset):
             np.intersect1d(waterbirds, land),
             np.intersect1d(waterbirds, water),
         ]
-        
+
         split = np.asarray(metadata_df["split"].values)
         self.train_indices = np.argwhere(split == 0).flatten()
         self.val_indices = np.argwhere(split == 1).flatten()
@@ -87,21 +84,22 @@ class Waterbirds(DataModule):
 
     def augmented_transforms(self):
         transform = Compose([
-            RandomResizedCrop((224, 224), scale=(0.7, 1.0)),
+            RandomResizedCrop(self.image_size, scale=(0.7, 1.0)),
             RandomHorizontalFlip(),
             ToTensor(),
-            Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            imagenet_normalization(),
         ])
 
         return transform
 
     def default_transforms(self):
+        resize_ratio = 256 / 224
+
         transform = Compose([
-            Resize((256, 256)),
-            CenterCrop((224, 224)),
+            Resize(int(resize_ratio * self.image_size)),
+            CenterCrop(self.image_size),
             ToTensor(),
-            Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            imagenet_normalization(),
         ])
 
         return transform
-

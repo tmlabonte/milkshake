@@ -2,21 +2,18 @@
 
 # Imports Python builtins.
 from abc import abstractmethod
-import numpy as np
 
 # Imports PyTorch packages.
 from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
 import pytorch_lightning as pl
 import torch
-from torch import nn
 import torch.nn.functional as F
 from torch.nn.parameter import is_lazy
 from torch.optim import Adam, AdamW, SGD
 from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR, MultiStepLR
-import torchvision.models as models
 
 # Imports milkshake packages.
-from milkshake.utils import compute_accuracy, to_np
+from milkshake.utils import compute_accuracy
 
 # TODO: Organize logging code in a separate file.
 # TODO: Implement after_n_steps logging similarly to after_epoch.
@@ -44,9 +41,9 @@ class Model(pl.LightningModule):
         # Saves args into self.hparams.
         self.save_hyperparameters(args)
         print(self.load_msg())
-        
+
         self.model = None
-        
+
         optimizers = {"adam": Adam, "adamw": AdamW, "sgd": SGD}
         self.optimizer = optimizers[args.optimizer]
 
@@ -70,15 +67,14 @@ class Model(pl.LightningModule):
         """
 
         if self.has_uninitialized_params():
-            match stage:
-                case "fit":
-                    dataloader = self.trainer.datamodule.train_dataloader()
-                case "validate":
-                    dataloader = self.trainer.datamodule.val_dataloader()
-                case "test":
-                    dataloader = self.trainer.datamodule.test_dataloader()
-                case "predict":
-                    dataloader = self.trainer.datamodule.predict_dataloader()
+            if stage == "fit":
+                dataloader = self.trainer.datamodule.train_dataloader()
+            elif stage == "validate":
+                dataloader = self.trainer.datamodule.val_dataloader()
+            elif stage == "test":
+                dataloader = self.trainer.datamodule.test_dataloader()
+            else:
+                dataloader = self.trainer.datamodule.predict_dataloader()
             dummy_batch = next(iter(dataloader))
             self.forward(dummy_batch[0])
 
@@ -87,10 +83,11 @@ class Model(pl.LightningModule):
 
         Args:
             inputs: A torch.Tensor of model inputs.
-        
+
         Returns:
             The model prediction as a torch.Tensor.
         """
+
         return torch.squeeze(self.model(inputs), dim=-1)
 
     def configure_optimizers(self):
@@ -131,7 +128,7 @@ class Model(pl.LightningModule):
             )
 
         return [optimizer], [scheduler]
-    
+
     def log_helper(self, names, values, add_dataloader_idx=False):
         """Compresses calls to self.log.
 
@@ -141,7 +138,7 @@ class Model(pl.LightningModule):
             add_dataloader_idx: Whether to include the dataloader index in the name.
         """
 
-        for idx, (name, value) in enumerate(zip(names, values)):
+        for name, value in zip(names, values):
             self.log(
                 name,
                 value,
@@ -151,10 +148,10 @@ class Model(pl.LightningModule):
                 sync_dist=True,
                 add_dataloader_idx=add_dataloader_idx,
             )
-    
+
     def log_helper2(self, names, values, dataloader_idx):
         """Calls log_helper as necessary for each DataLoader.
-        
+
         Args:
            names: A list of metric names to log.
            values: A list of metric values to log.
@@ -173,7 +170,7 @@ class Model(pl.LightningModule):
 
     def log_metrics(self, result, stage, dataloader_idx):
         """Logs metrics using the step results.
-        
+
         Args:
             result: The output of self.step.
             stage: "train", "val", or "test".
@@ -191,21 +188,21 @@ class Model(pl.LightningModule):
 
         names.extend(["epoch", "step"])
         values.extend([float(self.current_epoch), float(self.trainer.global_step)])
-        
+
         self.log_helper2(names, values, dataloader_idx)
-    
+
     def collate_metrics(self, step_results, stage):
         """Collates and logs metrics by class and group.
-        
+
         This is necessary because the logger does not utilize the info of how many samples
         from each class/group are in each batch, so logging class/group metrics on_epoch as
         usual will weight each batch the same instead of adjusting for totals.
-        
+
         Args:
             step_results: List of dictionary results of self.validation_step or self.test_step.
             stage: "val" or "test".
         """
-        
+
         def collate_and_sum(name):
             stacked = torch.stack([result[name] for result in step_results])
             return torch.sum(stacked, 0)
@@ -243,16 +240,16 @@ class Model(pl.LightningModule):
                 values.extend(list(acc5_by_group))
 
             self.log_helper2(names, values, dataloader_idx)
-        
+
     def add_metrics_to_result(self, result, accs, dataloader_idx):
         """Adds dataloader_idx and metrics from compute_accuracy to result dict.
-        
+
         Args:
             result: A dictionary containing the loss, prediction probabilities, and targets.
             accs: The output of compute_accuracy.
             dataloader_idx: The index of the current DataLoader.
         """
-        
+
         result["dataloader_idx"] = dataloader_idx
         result["acc"] = accs["acc"]
         result["acc5"] = accs["acc5"]
@@ -263,7 +260,7 @@ class Model(pl.LightningModule):
             result[f"correct_by_{k}"] = accs[f"correct_by_{k}"]
             result[f"correct5_by_{k}"] = accs[f"correct5_by_{k}"]
             result[f"total_by_{k}"] = accs[f"total_by_{k}"]
-    
+
     def step(self, batch, idx):
         """Performs a single step of prediction and loss calculation.
 
@@ -273,7 +270,7 @@ class Model(pl.LightningModule):
 
         Returns:
             A dictionary containing the loss, prediction probabilities, and targets.
-        
+
         Raises:
             ValueError: Class weights are specified with MSE loss, or MSE loss
             is specified for a multiclass classification task.
@@ -317,10 +314,10 @@ class Model(pl.LightningModule):
                 raise ValueError("MSE is only an option for binary classification.")
 
         return {"loss": loss, "probs": probs, "targets": orig_targets}
-    
+
     def step_and_log_metrics(self, batch, idx, dataloader_idx, stage):
         """Performs a step, then computes and logs metrics.
-        
+
         Args:
             batch: A tuple containing the inputs and targets as torch.Tensor.
             idx: The index of the given batch.
@@ -330,16 +327,16 @@ class Model(pl.LightningModule):
         Returns:
             A dictionary containing the loss, prediction probabilities, targets, and metrics.
         """
-        
+
         result = self.step(batch, idx)
-        
+
         accs = compute_accuracy(
             result["probs"],
             result["targets"],
             self.hparams.num_classes,
             self.hparams.num_groups,
         )
-        
+
         self.add_metrics_to_result(result, accs, dataloader_idx)
 
         self.log_metrics(result, stage, dataloader_idx)
@@ -357,19 +354,19 @@ class Model(pl.LightningModule):
         Returns:
             A dictionary containing the loss, prediction probabilities, targets, and metrics.
         """
-        
+
         return self.step_and_log_metrics(batch, idx, dataloader_idx, "train")
 
     def training_epoch_end(self, training_step_outputs):
         """Collates metrics upon completion of the training epoch.
-        
+
         Args:
             training_step_outputs: List of dictionary outputs of self.training_step.
         """
-        
+
         self.collate_metrics(training_step_outputs, "train")
 
-    
+
     def validation_step(self, batch, idx, dataloader_idx=0):
         """Performs a single validation step.
 
@@ -383,14 +380,14 @@ class Model(pl.LightningModule):
         """
 
         return self.step_and_log_metrics(batch, idx, dataloader_idx, "val")
-    
+
     def validation_epoch_end(self, validation_step_outputs):
         """Collates metrics upon completion of the validation epoch.
-        
+
         Args:
             validation_step_outputs: List of dictionary outputs of self.validation_step.
         """
-        
+
         self.collate_metrics(validation_step_outputs, "val")
 
     def test_step(self, batch, idx, dataloader_idx=0):
@@ -406,14 +403,14 @@ class Model(pl.LightningModule):
         """
 
         return self.step_and_log_metrics(batch, idx, dataloader_idx, "test")
-    
+
     def test_epoch_end(self, test_step_outputs):
         """Collates metrics upon completion of the test epoch.
-        
+
         Args:
             test_step_outputs: List of dictionary outputs of self.test_step.
         """
-        
+
         self.collate_metrics(test_step_outputs, "test")
 
     def predict_step(self, batch, batch_idx, dataloader_idx=0):
@@ -435,4 +432,3 @@ class Model(pl.LightningModule):
             preds = torch.argmax(probs, dim=1)
 
         return preds
-

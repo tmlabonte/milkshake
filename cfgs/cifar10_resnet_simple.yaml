@@ -7,6 +7,5 @@ devices: 1
 lr: 0.05
 max_epochs: 20
 model: resnet
-resnet_small_input: True
 val_split: 0.1
 weight_decay: 0

@@ -10,7 +10,7 @@ import warnings
 
 # Imports PyTorch packages.
 import torch
-from torch._utils import _accumulate 
+from torch._utils import _accumulate
 
 # Imports milkshake packages.
 from milkshake.datamodules.dataset import Subset
@@ -18,13 +18,13 @@ from milkshake.datamodules.dataset import Subset
 
 def get_weights(args, version, best=None, idx=None):
     """Returns weights path given model version and checkpoint index.
-    
+
     Args:
         args: The configuration dictionary.
         version: The model's PyTorch Lightning version.
         best: Whether to return the best model checkpoint.
         idx: The model's checkpoint index (-1 selects the latest checkpoint).
-    
+
     Returns:
         The filepath of the desired model weights.
     """
@@ -32,16 +32,16 @@ def get_weights(args, version, best=None, idx=None):
     ckpt_path = ""
     if args.wandb:
         ckpt_path = args.wandb_dir
-    
+
     # Selects the right naming convention for PL versions based on
     # whether the version input is an int or a string.
-    if type(version) == int:
+    if isinstance(version, int):
         ckpt_path = osp.join(ckpt_path, f"lightning_logs/version_{version}/checkpoints/*")
     else:
         ckpt_path = osp.join(ckpt_path, f"lightning_logs/{version}/checkpoints/*")
 
     list_of_weights = glob(osp.join(os.getcwd(), ckpt_path))
-    
+
     if best:
         return [w for w in list_of_weights if "best" in w][0]
     else:
@@ -50,7 +50,7 @@ def get_weights(args, version, best=None, idx=None):
 
 def compute_accuracy(probs, targets, num_classes, num_groups):
     """Computes top-1 and top-5 accuracies.
-    
+
     Computes top-1 and top-5 accuracies by total and by class, and also
     includes the number of correct predictions and number of samples.
     The latter is useful for, e.g., collating metrics over an epoch.
@@ -82,7 +82,7 @@ def compute_accuracy(probs, targets, num_classes, num_groups):
         preds1 = torch.argmax(probs, dim=1)
 
     correct1 = (preds1 == targets).float()
-    
+
     acc1_by_class = []
     correct1_by_class = []
     total_by_class = []
@@ -150,7 +150,7 @@ def compute_accuracy(probs, targets, num_classes, num_groups):
         "total_by_class": torch.stack(total_by_class),
         "total_by_group": torch.stack(total_by_group),
     }
-    
+
     return accs
 
 def _to_np(x):
@@ -185,15 +185,15 @@ def to_np(x):
 
 def random_split(dataset, lengths, generator):
     """Random split function from PyTorch adjusted for milkshake.Subset.
-    
+
     Args:
         dataset: The milkshake.Dataset to be randomly split.
         lengths: The lengths or fractions of splits to be produced.
         generator: The generator used for the random permutation.
-    
+
     Returns:
         A list of milkshake.Subsets with the desired splits.
-    
+
     Raises:
         ValueError: The sum of input lengths does not equal the length of the input dataset.
     """
@@ -223,7 +223,7 @@ def random_split(dataset, lengths, generator):
     if sum(lengths) != len(dataset):    # type: ignore[arg-type]
         raise ValueError("Sum of input lengths does not equal the length of the input dataset!")
 
-    indices = torch.randperm(sum(lengths), generator=generator).tolist() 
+    indices = torch.randperm(sum(lengths), generator=generator).tolist()
     return [Subset(dataset, indices[offset - length : offset])
             for offset, length in zip(_accumulate(lengths), lengths)]
 
@@ -257,4 +257,3 @@ def ignore_warnings():
     def _filterwarnings(*xargs, **kwargs):
         return original_filterwarnings(*xargs, **{**kwargs, "append": True})
     warnings.filterwarnings = _filterwarnings
-

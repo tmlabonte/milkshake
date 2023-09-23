@@ -2,7 +2,7 @@
 
 # Imports PyTorch packages.
 import torch
-from torchvision.transforms import Compose, Normalize, ToTensor
+from torchvision.transforms import Compose, Normalize, Resize
 
 # Imports milkshake packages.
 from milkshake.datamodules.datamodule import DataModule
@@ -14,6 +14,8 @@ class BinaryMNIST(DataModule):
 
     The BinaryMNIST dataset uses the same data as the MNIST dataset, but
     turns it into a binary classification task between odd and even digits.
+    This is different from the usual BinaryMNIST, which instead changes all
+    pixel values to either 0 or 1 (we keep the original pixel values).
     """
 
     def __init__(self, args, **kwargs):
@@ -23,7 +25,10 @@ class BinaryMNIST(DataModule):
         return self.default_transforms()
 
     def default_transforms(self):
-        return Normalize(mean=(0.5,), std=(0.5,))
+        return Compose([
+            Resize(self.image_size),
+            Normalize(mean=(0.5,), std=(0.5,)),
+        ])
 
     def train_preprocess(self, dataset_train):
         dataset_train.targets = torch.tensor([target % 2 for target in dataset_train.targets])
@@ -39,4 +44,3 @@ class BinaryMNIST(DataModule):
         dataset_test.targets = torch.tensor([target % 2 for target in dataset_test.targets])
         dataset_test = super().test_preprocess(dataset_test)
         return dataset_test
-

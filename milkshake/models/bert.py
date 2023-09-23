@@ -35,7 +35,7 @@ class BERT(Model):
 
         def classifier(self, x):
             return self.fc(x)
-        
+
         self.model.classifier = types.MethodType(classifier, self.model)
         self.model.base_forward = self.model.forward
 
@@ -101,4 +101,3 @@ class BERT(Model):
             return optimizer
         else:
             raise NotImplementedError()
-

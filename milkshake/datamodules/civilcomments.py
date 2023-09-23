@@ -3,7 +3,6 @@
 # Imports Python packages.
 import numpy as np
 import os.path as osp
-import pickle
 from transformers import BertTokenizer
 import wilds
 
@@ -54,7 +53,7 @@ class CivilCommentsDataset(Dataset):
                 )
 
                 return torch.squeeze(torch.stack((
-                    tokens["input_ids"], tokens["attention_mask"], 
+                    tokens["input_ids"], tokens["attention_mask"],
                     tokens["token_type_ids"]), dim=2), dim=0)
 
             data = []
@@ -78,7 +77,7 @@ class CivilCommentsDataset(Dataset):
             np.intersect1d(self.targets.nonzero()[0], (~spurious+2).nonzero()[0]),
             np.intersect1d(self.targets.nonzero()[0], spurious.nonzero()[0]),
         ]
-        
+
         split = dataset._split_array
         self.train_indices = np.argwhere(split == 0).flatten()
         self.val_indices = np.argwhere(split == 1).flatten()

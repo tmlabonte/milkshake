@@ -42,7 +42,7 @@ class Dataset(VisionDataset):
         root,
         train=True,
         transform=None,
-        target_transform=None, 
+        target_transform=None,
         download=False,
     ):
         """Initializes a Dataset and downloads to disk if requested.
@@ -137,14 +137,14 @@ class Dataset(VisionDataset):
 
 class Subset(Dataset):
     """Subset of a Dataset at specified indices.
-    
+
     Modified from torch.utils.Subset to allow interactions as if it was a
     milkshake.datamodules.dataset.Dataset (e.g., by indices, groups, etc.).
     """
 
     def __init__(self, dataset, indices):
         """Initializes a Subset and sets the new indices.
-        
+
         Args:
             dataset: A milkshake.datamodules.Dataset.
             indices: The indices to utilize in the subset.
@@ -160,11 +160,11 @@ class Subset(Dataset):
 
         self.data = dataset.data[indices]
         self.targets = dataset.targets[indices]
-        
+
         self.train_indices = dataset.train_indices
         self.val_indices = dataset.val_indices
         self.test_indices = dataset.test_indices
-        
+
         # Gets subsets of train_indices, etc. that are present in indices and
         # converts them to new indices taking values in [0, len(indices)].
         # If self.train_indices is None, then we are doing a random split
@@ -173,17 +173,17 @@ class Subset(Dataset):
             self.train_indices = np.in1d(indices, self.train_indices).nonzero()[0]
         else:
             self.train_indices = np.arange(len(indices))
-            
+
         if self.val_indices is not None:
             self.val_indices = np.in1d(indices, self.val_indices).nonzero()[0]
         else:
             self.val_indices = np.arange(len(indices))
-            
+
         if not self.train and self.test_indices is not None:
             self.test_indices = np.in1d(indices, self.test_indices).nonzero()[0]
         elif not self.train:
             self.test_indices = np.arange(len(indices))
-            
+
         if self.groups is not None:
             self.groups = [
                 np.in1d(indices, group).nonzero()[0]
@@ -195,4 +195,3 @@ class Subset(Dataset):
 
     def __len__(self):
         return len(self.indices)
-

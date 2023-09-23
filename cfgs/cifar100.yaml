@@ -8,4 +8,3 @@ lr: 0.1
 lr_scheduler: cosine
 max_epochs: 400
 model: resnet
-resnet_small_input: True

@@ -1,0 +1,13 @@
+accelerator: gpu
+batch_size: 64
+check_val_every_n_epoch: 2
+ckpt_every_n_epoch: 20
+datamodule: cifar10
+devices: 1
+lr: 1e-4
+lr_scheduler: cosine
+max_epochs: 20
+model: vit
+optimizer: adamw
+val_split: 0.1
+weight_decay: 5e-4

@@ -2,14 +2,13 @@
 
 # Imports Python builtins.
 from abc import abstractmethod
-from copy import deepcopy
 import random
 
 # Imports Python packages.
 import numpy as np
 
 # Imports PyTorch packages.
-from torch import Generator, randperm
+from torch import Generator
 from torch.utils.data import DataLoader, WeightedRandomSampler
 from pl_bolts.datamodules.vision_datamodule import VisionDataModule
 
@@ -73,11 +72,12 @@ class DataModule(VisionDataModule):
         self.dataset_class = dataset_class
         self.num_classes = num_classes
         self.num_groups = num_groups
-        
+
         self.balanced_sampler = args.balanced_sampler
         self.data_augmentation = args.data_augmentation
+        self.image_size = args.image_size
         self.label_noise = args.label_noise
-         
+
         self.train_transforms = self.default_transforms()
         self.val_transforms = self.default_transforms()
         self.test_transforms = self.default_transforms()
@@ -96,7 +96,7 @@ class DataModule(VisionDataModule):
     @abstractmethod
     def default_transforms(self):
         """Returns default torchvision.transforms."""
- 
+
     def prepare_data(self):
         """Downloads datasets to disk if necessary."""
 
@@ -107,7 +107,7 @@ class DataModule(VisionDataModule):
         """Returns a descriptive message about the DataModule configuration."""
 
         msg = f"Loading {type(self).__name__}"
- 
+
         if hasattr(self, "dataset_test"):
             msg = msg + " with test split."
         elif hasattr(self, "dataset_val"):
@@ -140,7 +140,7 @@ class DataModule(VisionDataModule):
             num_labels = len(train_indices)
             num_noised_labels = int(self.label_noise * num_labels)
 
-            for i, target in enumerate(train_indices[:num_noised_labels]):
+            for i, _ in enumerate(train_indices[:num_noised_labels]):
                 labels = [j for j in range(self.num_classes) if j != i]
                 dataset_train.targets[i] = random.choice(labels)
 
@@ -172,7 +172,7 @@ class DataModule(VisionDataModule):
 
     def setup(self, stage=None):
         """Instantiates and preprocesses datasets.
-        
+
         Args:
             stage: "train", "validate", or "test".
         """
@@ -202,7 +202,7 @@ class DataModule(VisionDataModule):
                 target_transform=self.val_target_transforms,
             )
 
-            
+
             dataset_train = self._split_dataset(dataset_train)
             self.dataset_train = self.train_preprocess(dataset_train)
 
@@ -215,7 +215,7 @@ class DataModule(VisionDataModule):
         """Splits dataset into training and validation subsets.
 
         Checks for a preset split, then returns a random split if it does not exist.
-        
+
         Args:
             dataset: A milkshake.datamodules.dataset.Dataset.
             val: Whether to return the validation set (otherwise returns the training set).
@@ -237,7 +237,7 @@ class DataModule(VisionDataModule):
         else:
             dataset_train = Subset(dataset, dataset.train_indices)
             dataset_val = Subset(dataset, dataset.val_indices)
-                        
+
         if val:
             return dataset_val
         return dataset_train
@@ -295,4 +295,3 @@ class DataModule(VisionDataModule):
             sampler=sampler,
             shuffle=shuffle,
         )
-

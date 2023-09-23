@@ -7,7 +7,6 @@ ignore_warnings()
 # Imports Python builtins.
 from inspect import isclass
 import os
-import os.path as osp
 import resource
 
 # Imports Python packages.
@@ -61,7 +60,7 @@ def load_weights(args, model):
             checkpoint = torch.load(args.weights, map_location="cpu")
             state_dict = checkpoint["state_dict"]
             model.load_state_dict(state_dict, strict=False)
-            print(f"Weights loaded from {args.weights}.")     
+            print(f"Weights loaded from {args.weights}.")
 
     return model
 
@@ -70,11 +69,11 @@ def load_trainer(args, addtl_callbacks=None):
 
     Args:
         args: The configuration dictionary.
-        addtl_callbacks: Desired callbacks besides ModelCheckpoint and TQDMProgressBar.
+        addtl_callbacks: Desired callbacks besides ModelCheckpoint and RichProgressBar.
 
     Returns:
         An instance of pytorch_lightning.Trainer parameterized by args.
-        
+
     Raises:
         ValueError: addtl_callbacks is not None and not a list.
     """
@@ -103,8 +102,8 @@ def load_trainer(args, addtl_callbacks=None):
         every_n_train_steps=args.ckpt_every_n_steps,
     )
 
-    progress_bar = RichProgressBar(refresh_rate=args.refresh_rate)
- 
+    progress_bar = RichProgressBar()
+
     callbacks = [checkpointer1, checkpointer2, progress_bar]
     if addtl_callbacks is not None:
         if not isinstance(addtl_callbacks, list):
@@ -147,7 +146,7 @@ def main(
         args: The configuration dictionary.
         model_or_model_class: A model or class which inherits from milkshake.models.Model.
         datamodule_or_datamodule_class: A datamodule or class which inherits from milkshake.datamodules.DataModule.
-        callbacks: Any desired callbacks besides ModelCheckpoint and TQDMProgressBar.
+        callbacks: Any desired callbacks besides ModelCheckpoint and RichProgressBar.
         model_hooks: Any desired functions to run on the model before training.
         verbose: Whether to print the validation and test metrics.
 
@@ -178,7 +177,7 @@ def main(
     model = model_or_model_class
     if isclass(model):
         model = model(args)
-        
+
     model = load_weights(args, model)
 
     if model_hooks:
@@ -210,14 +209,13 @@ def main(
         wandb.finish()
         cache = wandb.sdk.artifacts.artifacts_cache.get_artifacts_cache()
         cache.cleanup(int(10e10))
-    
+
     return model, val_metrics, test_metrics
 
 
 if __name__ == "__main__":
     args = parse_args()
-    
+
     models, datamodules = valid_models_and_datamodules()
 
     main(args, models[args.model], datamodules[args.datamodule])
-
