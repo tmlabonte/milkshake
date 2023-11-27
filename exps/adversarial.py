@@ -166,6 +166,8 @@ if __name__ == "__main__":
 
     parser = add_input_args(parser)
     parser = Trainer.add_argparse_args(parser)
+    parser.set_defaults(strategy="ddp_find_unused_parameters_false")
+
     parser.add("--alpha", default=0.01, type=float)
     parser.add("--epsilon", default=0.03, type=float)
     parser.add("--pgd_steps", default=7, type=int)
