@@ -113,6 +113,8 @@ if __name__ == "__main__":
 
     parser = add_input_args(parser)
     parser = Trainer.add_argparse_args(parser)
+    parser.set_defaults(strategy="ddp_find_unused_parameters_false")
+
     parser.add("--cnn_epochs", default=100, type=int)
     parser.add("--cnn_lr", default=0.1, type=float)
     parser.add("--distillation_epochs", default=100, type=int)
