@@ -191,7 +191,7 @@ def to_np(x):
         return _to_np(x)
     elif isinstance(x, (np.ndarray, list)):
         if isinstance(x[0], torch.Tensor):
-            return _to_np(torch.tensor(x))
+            return _to_np(torch.stack(x))
         else:
             return np.asarray(x)
     else:
