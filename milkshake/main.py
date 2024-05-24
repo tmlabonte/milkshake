@@ -49,6 +49,20 @@ def load_weights(args, model):
         The input model, possibly with the state dict loaded.
     """
 
+    if args.resume_training and not args.weights:
+        raise ValueError((
+            "Attempted to resume training but args.weights is not specified."
+        ))
+    try:
+        if args.ckpt_path:
+            raise ValueError((
+                "args.ckpt_path is a Lightning internal variable and is not meant"
+                " to be set by Milkshake users. Please specify args.weights and/or"
+                " args.resume_training instead."
+            ))
+    except AttributeError:
+        pass
+
     args.ckpt_path = None
     if args.weights:
         if args.resume_training:
@@ -174,11 +188,11 @@ def main(
     args.num_classes = datamodule.num_classes
     args.num_groups = datamodule.num_groups
 
+    args.ckpt_path = None
     model = model_or_model_class
     if isclass(model):
         model = model(args)
-
-    model = load_weights(args, model)
+        model = load_weights(args, model)
 
     if model_hooks:
         for hook in model_hooks:
@@ -212,7 +226,7 @@ def main(
     if args.wandb:
         wandb.finish()
         cache = wandb.sdk.artifacts.artifacts_cache.get_artifacts_cache()
-        cache.cleanup(int(10e10))
+        cache.cleanup(int(10e9))
 
     return model, val_metrics, test_metrics
 

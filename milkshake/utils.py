@@ -124,7 +124,10 @@ def compute_accuracy(probs, targets, num_classes, num_groups):
     correct5_by_class = total_by_class
     if num_classes > 5:
         _, preds5 = torch.topk(probs, k=5, dim=1)
-        correct5 = torch.tensor([t in preds5[j] for j, t in enumerate(targets)])
+        correct5 = torch.tensor(
+            [t in preds5[j] for j, t in enumerate(targets)],
+            device=targets.device
+        )
         correct5 = correct5.float()
 
         acc5_by_class = []

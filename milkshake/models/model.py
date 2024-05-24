@@ -203,43 +203,52 @@ class Model(pl.LightningModule):
             stage: "val" or "test".
         """
 
-        def collate_and_sum(name):
-            stacked = torch.stack([result[name] for result in step_results])
-            return torch.sum(stacked, 0)
+        # one dataloader: step_results = [{}, {}, ...]
+        # 2+ dataloaders: step_results = [[{}, {}, ...], [{}, {}, ...], ...]
+        if type(step_results[0]) == dict:
+            step_results = [step_results]
 
-        dataloader_idx = step_results[0]["dataloader_idx"]
+        for step_result in step_results:
+            dataloader_idx = step_result[0]["dataloader_idx"]
+            def collate_and_sum(name):
+                stacked = torch.stack([result[name] for result in step_result])
+                return torch.sum(stacked, 0)
 
-        if "acc_by_class" in self.hparams.metrics or \
-          "acc5_by_class" in self.hparams.metrics or \
-          "acc_by_group" in self.hparams.metrics or \
-          "acc5_by_group" in self.hparams.metrics:
-            names = []
-            values = []
-            total_by_class = collate_and_sum("total_by_class")
-            total_by_group = collate_and_sum("total_by_group")
+            if "acc_by_class" in self.hparams.metrics or \
+              "acc5_by_class" in self.hparams.metrics or \
+              "acc_by_group" in self.hparams.metrics or \
+              "acc5_by_group" in self.hparams.metrics:
+                names = []
+                values = []
+                total_by_class = collate_and_sum("total_by_class")
+                total_by_group = collate_and_sum("total_by_group")
 
-            if "acc_by_class" in self.hparams.metrics:
-                acc_by_class = collate_and_sum("correct_by_class") / total_by_class
-                names.extend([f"{stage}_acc_class{j}"
-                              for j in range(len(acc_by_class))])
-                values.extend(list(acc_by_class))
-            if "acc5_by_class" in self.hparams.metrics:
-                acc5_by_class = collate_and_sum("correct5_by_class") / total_by_class
-                names.extend([f"{stage}_acc5_class{j}"
-                              for j in range(len(acc5_by_class))])
-                values.extend(list(acc5_by_class))
-            if "acc_by_group" in self.hparams.metrics:
-                acc_by_group = collate_and_sum("correct_by_group") / total_by_group
-                names.extend([f"{stage}_acc_group{j}"
-                              for j in range(len(acc_by_group))])
-                values.extend(list(acc_by_group))
-            if "acc5_by_group" in self.hparams.metrics:
-                acc5_by_group = collate_and_sum("correct5_by_group") / total_by_group
-                names.extend([f"{stage}_acc5_group{j}"
-                              for j in range(len(acc5_by_group))])
-                values.extend(list(acc5_by_group))
+                if "acc_by_class" in self.hparams.metrics:
+                    acc_by_class = collate_and_sum("correct_by_class")
+                    acc_by_class /= total_by_class
+                    names.extend([f"{stage}_acc_class{j:02d}"
+                                  for j in range(len(acc_by_class))])
+                    values.extend(list(acc_by_class))
+                if "acc5_by_class" in self.hparams.metrics:
+                    acc5_by_class = collate_and_sum("correct5_by_class")
+                    acc5_by_class /= total_by_class
+                    names.extend([f"{stage}_acc5_class{j:02d}"
+                                  for j in range(len(acc5_by_class))])
+                    values.extend(list(acc5_by_class))
+                if "acc_by_group" in self.hparams.metrics:
+                    acc_by_group = collate_and_sum("correct_by_group")
+                    acc_by_group /= total_by_group
+                    names.extend([f"{stage}_acc_group{j:02d}"
+                                  for j in range(len(acc_by_group))])
+                    values.extend(list(acc_by_group))
+                if "acc5_by_group" in self.hparams.metrics:
+                    acc5_by_group = collate_and_sum("correct5_by_group")
+                    acc5_by_group /= total_by_group
+                    names.extend([f"{stage}_acc5_group{j:02d}"
+                                  for j in range(len(acc5_by_group))])
+                    values.extend(list(acc5_by_group))
 
-            self.log_helper2(names, values, dataloader_idx)
+                self.log_helper2(names, values, dataloader_idx)
 
     def add_metrics_to_result(self, result, accs, dataloader_idx):
         """Adds dataloader_idx and metrics from compute_accuracy to result dict.
@@ -303,7 +312,8 @@ class Model(pl.LightningModule):
                 loss = F.binary_cross_entropy_with_logits(logits, targets, weight=weights)
                 probs = torch.sigmoid(logits)
             else:
-                loss = F.cross_entropy(logits, targets, weight=weights)
+                loss = F.cross_entropy(logits, targets, weight=weights,
+                        label_smoothing=self.hparams.label_smoothing)
                 probs = F.softmax(logits, dim=1)
         elif self.hparams.loss == "mse":
             if self.hparams.num_classes == 1:

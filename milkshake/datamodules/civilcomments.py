@@ -60,7 +60,7 @@ class CivilCommentsDataset(Dataset):
             targets = []
             ln = len(dataset)
             for j, d in enumerate(dataset):
-                print(f"Caching {j}/{ln}")
+                print(f"Caching {j + 1} / {ln}")
                 data.append(tokenize(d[0]))
                 targets.append(d[1])
             data = torch.stack(data)
