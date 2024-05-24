@@ -67,7 +67,7 @@ def add_input_args(parser):
                help="The depth of the third stage of the ConvNeXtV2.")
     parser.add("--convnextv2_version", default="base",
                choices=["atto", "femto", "pico", "nano", "tiny", "base", "large", "huge"],
-               help="The version of ConvNeXTV2 model to load.")
+               help="The version of ConvNeXtV2 model to load.")
     parser.add("--cnn_batchnorm", default=True, type=lambda x: bool(strtobool(x)),
                help="Whether to use batch normalization in the CNN.")
     parser.add("--cnn_initial_width", default=32, type=int,
