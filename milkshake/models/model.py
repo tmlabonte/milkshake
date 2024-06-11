@@ -304,7 +304,7 @@ class Model(pl.LightningModule):
         if self.hparams.class_weights:
             if self.hparams.loss == "mse":
                 raise ValueError("Cannot use class weights with MSE.")
-            weights = torch.Tensor(self.hparams.class_weights, device=logits.device)
+            weights = torch.tensor(self.hparams.class_weights, device=logits.device)
 
         # Computes loss and prediction probabilities.
         if self.hparams.loss == "cross_entropy":
