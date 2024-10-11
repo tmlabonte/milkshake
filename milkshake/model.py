@@ -13,10 +13,11 @@ from torch.optim import Adam, AdamW, SGD
 from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR, MultiStepLR
 
 # Imports milkshake packages.
-from milkshake.models.logger import Logger  
 from milkshake.utils import compute_accuracy
 
+# TODO: Organize logging code in a separate file.
 # TODO: Implement after_n_steps logging similarly to after_epoch.
+# TODO: Clean up collate_metrics.
 
 
 class Model(pl.LightningModule):
@@ -24,7 +25,6 @@ class Model(pl.LightningModule):
 
     Attributes:
         self.hparams: The configuration dictionary.
-        self.milkshake_logger: A milkshake.Logger.
         self.model: A torch.nn.Module.
         self.optimizer: A torch.optim optimizer.
     """
@@ -46,14 +46,17 @@ class Model(pl.LightningModule):
 
         optimizers = {"adam": Adam, "adamw": AdamW, "sgd": SGD}
         self.optimizer = optimizers[args.optimizer]
+        # Initialize the logger object
+        self.logger = Logger(self)
 
     def log_metrics(self, result, stage, dataloader_idx):
         """Logs metrics using the step results."""
-        self.milkshake_logger.log_metrics(result, stage, dataloader_idx)
+        self.logger.log_metrics(result, stage, dataloader_idx)
 
     def collate_metrics(self, step_results, stage):
         """Collates and logs metrics by class and group."""
-        self.milkshake_logger.collate_metrics(step_results, stage)
+        self.logger.collate_metrics(step_results, stage)
+
 
     @abstractmethod
     def load_msg(self):
@@ -85,8 +88,6 @@ class Model(pl.LightningModule):
                 dataloader = self.trainer.datamodule.predict_dataloader()
             dummy_batch = next(iter(dataloader))
             self.forward(dummy_batch[0])
-
-        self.milkshake_logger = Logger(self.hparams, self.trainer, self.log)
 
     def forward(self, inputs):
         """Predicts using the model.
@@ -139,91 +140,6 @@ class Model(pl.LightningModule):
 
         return [optimizer], [scheduler]
 
-    def step(self, batch, idx):
-        """Performs a single step of prediction and loss calculation.
-
-        Args:
-            batch: A tuple containing the inputs and targets as torch.Tensor.
-            idx: The index of the given batch.
-
-        Returns:
-            A dictionary containing the loss, prediction probabilities, and targets.
-
-        Raises:
-            ValueError: Class weights are specified with MSE loss, or MSE loss
-            is specified for a multiclass classification task.
-        """
-
-        inputs, orig_targets = batch
-
-        # Removes extra targets (e.g., group index used for metrics).
-        if orig_targets[0].ndim > 0:
-            targets = orig_targets[:, 0]
-        else:
-            targets = orig_targets
-
-        logits = self(inputs)
-
-        # Ensures logits is a torch.Tensor.
-        if isinstance(logits, (tuple, list)):
-            logits = torch.squeeze(logits[0], dim=-1)
-
-        # Initializes class weights if desired.
-        weights = torch.ones(self.hparams.num_classes, device=logits.device)
-        if self.hparams.class_weights:
-            if self.hparams.loss == "mse":
-                raise ValueError("Cannot use class weights with MSE.")
-            weights = torch.tensor(self.hparams.class_weights, device=logits.device)
-
-        # Computes loss and prediction probabilities.
-        if self.hparams.loss == "cross_entropy":
-            if self.hparams.num_classes == 1:
-                loss = F.binary_cross_entropy_with_logits(logits, targets, weight=weights)
-                probs = torch.sigmoid(logits)
-            else:
-                loss = F.cross_entropy(logits, targets, weight=weights,
-                        label_smoothing=self.hparams.label_smoothing)
-                probs = F.softmax(logits, dim=1)
-        elif self.hparams.loss == "mse":
-            if self.hparams.num_classes == 1:
-                loss = F.mse_loss(logits, targets.float())
-                probs = torch.sigmoid(logits)
-            elif self.hparams.num_classes == 2:
-                loss = F.mse_loss(logits[:, 0], targets.float())
-                probs = F.softmax(logits, dim=1)
-            else:
-                raise ValueError("MSE is only an option for binary classification.")
-
-        return {"loss": loss, "probs": probs, "targets": orig_targets}
-
-    def step_and_log_metrics(self, batch, idx, dataloader_idx, stage):
-        """Performs a step, then computes and logs metrics.
-
-        Args:
-            batch: A tuple containing the inputs and targets as torch.Tensor.
-            idx: The index of the given batch.
-            dataloader_idx: The index of the current dataloader.
-            stage: "train", "val", or "test".
-
-        Returns:
-            A dictionary containing the loss, prediction probabilities, targets, and metrics.
-        """
-
-        result = self.step(batch, idx)
-
-        accs = compute_accuracy(
-            result["probs"],
-            result["targets"],
-            self.hparams.num_classes,
-            self.hparams.num_groups,
-        )
-
-        self.milkshake_logger.add_metrics_to_result(result, accs, dataloader_idx)
-
-        self.milkshake_logger.log_metrics(result, stage, dataloader_idx)
-
-        return result
-
     def training_step(self, batch, idx, dataloader_idx=0):
         """Performs a single training step.
 
@@ -246,6 +162,7 @@ class Model(pl.LightningModule):
         """
 
         self.collate_metrics(training_step_outputs, "train")
+
 
     def validation_step(self, batch, idx, dataloader_idx=0):
         """Performs a single validation step.
@@ -312,5 +229,3 @@ class Model(pl.LightningModule):
             preds = torch.argmax(probs, dim=1)
 
         return preds
-
-
