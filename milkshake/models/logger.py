@@ -141,14 +141,3 @@ class Logger:
             result[f"correct_by_{k}"] = accs[f"correct_by_{k}"]
             result[f"correct5_by_{k}"] = accs[f"correct5_by_{k}"]
             result[f"total_by_{k}"] = accs[f"total_by_{k}"]
- 
-"""
-Any method that deals with logging can now simply call the respective Logger methods:
-
-def training_step(self, batch, idx, dataloader_idx=0):
-    result = self.step(batch, idx)
-    accs = compute_accuracy(result["probs"], result["targets"], self.hparams.num_classes, self.hparams.num_groups)
-    self.add_metrics_to_result(result, accs, dataloader_idx)
-    self.log_metrics(result, "train", dataloader_idx)  # Delegate to logger
-    return result
-"""
