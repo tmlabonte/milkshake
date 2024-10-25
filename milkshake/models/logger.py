@@ -1,17 +1,7 @@
-# Imports Python builtins.
-from abc import abstractmethod
+"""Class for a Logger which handles metrics for a Model."""
 
 # Imports PyTorch packages.
-from pl_bolts.optimizers.lr_scheduler import LinearWarmupCosineAnnealingLR
-import pytorch_lightning as pl
 import torch
-import torch.nn.functional as F
-from torch.nn.parameter import is_lazy
-from torch.optim import Adam, AdamW, SGD
-from torch.optim.lr_scheduler import CosineAnnealingLR, LinearLR, MultiStepLR
-
-# Imports milkshake packages.
-from milkshake.utils import compute_accuracy
 
 class Logger:
     """Handles logging for model training, validation, and testing."""
