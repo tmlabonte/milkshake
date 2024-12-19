@@ -184,39 +184,37 @@ class DataModule(VisionDataModule):
         """
 
         if stage == "test":
-            dataset_test = self.dataset_class(
+            self.dataset_test = self.dataset_class(
                 self.data_dir,
                 train=False,
                 transform=self.test_transforms,
                 target_transform=self.test_target_transforms,
             )
+            print(self.load_msg())
 
-            dataset_test = self.test_preprocess(dataset_test)
-            self.dataset_test = dataset_test
+            self.dataset_test = self.test_preprocess(self.dataset_test)
         else:
-            dataset_train = self.dataset_class(
+            self.dataset_train = self.dataset_class(
                 self.data_dir,
                 train=True,
                 transform=self.train_transforms,
                 target_transform=self.train_target_transforms,
             )
 
-            dataset_val = self.dataset_class(
+            self.dataset_val = self.dataset_class(
                 self.data_dir,
                 train=True,
                 transform=self.val_transforms,
                 target_transform=self.val_target_transforms,
             )
+            print(self.load_msg())
 
+            self.dataset_train = self._split_dataset(self.dataset_train)
+            self.dataset_train = self.train_preprocess(self.dataset_train)
 
-            dataset_train = self._split_dataset(dataset_train)
-            self.dataset_train = self.train_preprocess(dataset_train)
-
-            dataset_val = self._split_dataset(dataset_val, val=True)
-            self.dataset_val = self.val_preprocess(dataset_val)
-
-        print(self.load_msg())
-
+            self.dataset_val = self._split_dataset(self.dataset_val, val=True)
+            self.dataset_val = self.val_preprocess(self.dataset_val)
+        
     def _split_dataset(self, dataset, val=False):
         """Splits dataset into training and validation subsets.
 
