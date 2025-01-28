@@ -61,6 +61,12 @@ class CIFAR10(DataModule):
     def __init__(self, args, **kwargs):
         super().__init__(args, CIFAR10Dataset, 10, 0, **kwargs)
 
+        if args.image_size != 32:
+            print(
+                "Warning: image size is not the standard 32x32 for CIFAR."
+                "Please adjust args.image_size if this was not your intention."
+            )
+
     def augmented_transforms(self):
         transforms = Compose([
             RandomResizedCrop(self.image_size),
