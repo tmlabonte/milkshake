@@ -29,6 +29,12 @@ class MNIST(DataModule):
     def __init__(self, args, **kwargs):
         super().__init__(args, MNISTDataset, 10, 0, **kwargs)
 
+        if args.image_size != 28:
+            print(
+                "Warning: image size is not the standard 28x28 for MNIST."
+                "Please adjust args.image_size if this was not your intention."
+            )
+
     def augmented_transforms(self):
         return self.default_transforms()
 
