@@ -64,7 +64,7 @@ class CIFAR10(DataModule):
         if args.image_size != 32:
             print(
                 "Warning: image size is not the standard 32x32 for CIFAR."
-                "Please adjust args.image_size if this was not your intention."
+                " Please adjust args.image_size if this was not your intention."
             )
 
     def augmented_transforms(self):
