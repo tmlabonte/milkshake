@@ -24,7 +24,7 @@ class BinaryMNIST(DataModule):
         if args.image_size != 28:
             print(
                 "Warning: image size is not the standard 28x28 for MNIST."
-                "Please adjust args.image_size if this was not your intention."
+                " Please adjust args.image_size if this was not your intention."
             )
 
     def augmented_transforms(self):
