@@ -64,8 +64,12 @@ class BERT(Model):
                 p.requires_grad = True
 
     def load_msg(self):
-        return (f"Loading BERT {self.hparams.bert_version.capitalize()}"
-                " Uncased pretrained on Book Corpus and English Wikipedia.")
+        if self.hparams.bert_pretrained:
+            return (f"Loading BERT {self.hparams.bert_version.capitalize()}"
+                    " Uncased pretrained on Book Corpus and English Wikipedia.")
+        else:
+            return (f"Loading BERT with width {self.hparams.bert_width}"
+                    " and depth {self.hparams.bert_depth}.")
 
     def configure_optimizers(self):
         """Returns the optimizer and learning rate scheduler."""
