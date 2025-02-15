@@ -10,8 +10,8 @@ import os
 import resource
 
 # Imports Python packages.
-import wandb
 from PIL import ImageFile
+import wandb
 
 # Imports PyTorch packages.
 from lightning_lite.utilities.seed import seed_everything
