@@ -1,0 +1,14 @@
+accelerator: gpu
+batch_size: 128
+check_val_every_n_epoch: 2
+ckpt_every_n_epoch: 10
+datamodule: svhn
+devices: 1
+image_size: 32
+lr: 1e-3
+lr_scheduler: cosine
+max_epochs: 10
+model: resnet
+optimizer: adamw
+resnet_version: 18
+val_split: 0.1
